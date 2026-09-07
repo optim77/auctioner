@@ -38,9 +38,31 @@ def listing(seller, category):
     )
 
 @pytest.fixture
+def second_listing(seller, category):
+    return Listing.objects.create(
+        seller=seller,
+        name="test",
+        description="test",
+        creation_date=timezone.now(),
+        category=category
+    )
+
+@pytest.fixture
 def auction(listing):
     return Auction.objects.create(
         listing=listing,
+        start_price=100,
+        current_price=100,
+        start_date=timezone.now(),
+        end_date=timezone.now() + timezone.timedelta(hours=1),
+        currency="PLN",
+        status=AuctionStatus.ACTIVE,
+    )
+
+@pytest.fixture
+def second_auction(second_listing):
+    return Auction.objects.create(
+        listing=second_listing,
         start_price=100,
         current_price=100,
         start_date=timezone.now(),

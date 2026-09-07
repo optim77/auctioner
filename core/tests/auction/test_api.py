@@ -345,7 +345,7 @@ def test_active_auction_is_expired_after_end_date(
     auction.end_date = timezone.now() - timezone.timedelta(minutes=1)
     auction.save(update_fields=["end_date"])
 
-    AuctionServices.expire_auctions()
+    AuctionServices.close_expired_auctions()
 
     auction.refresh_from_db()
 
@@ -358,7 +358,7 @@ def test_active_auction_is_not_expired_before_end_date(
     auction.end_date = timezone.now() + timezone.timedelta(hours=1)
     auction.save(update_fields=["end_date"])
 
-    AuctionServices.expire_auctions()
+    AuctionServices.close_expired_auctions()
 
     auction.refresh_from_db()
 

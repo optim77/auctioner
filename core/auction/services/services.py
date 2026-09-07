@@ -2,7 +2,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from auction.models import Auction, AuctionStatus
-
+from bid.models import Bid
 
 
 class AuctionServices:
@@ -54,11 +54,40 @@ class AuctionServices:
 
     @staticmethod
     @transaction.atomic
-    def expire_auctions():
-        expired_auctions = Auction.objects.select_for_update().filter(
+    def close_expired_auctions():
+        auctions = Auction.objects.filter(
             status=AuctionStatus.ACTIVE,
-            end_date__lte=timezone.now()
+            end_date__lte=timezone.now(),
         )
-        for auction in expired_auctions:
+
+        for auction in auctions:
+            AuctionServices.close_auction(auction.id)
+
+
+    @staticmethod
+    @transaction.atomic
+    def close_auction(auction_id):
+        auction = (
+            Auction.objects
+            .select_for_update()
+            .get(id=auction_id)
+        )
+        if auction.status != AuctionStatus.ACTIVE:
+            raise ValidationError("Auction is already inactive")
+        winning_bid = (
+            auction.bids
+            .order_by("-bid_price", "created_at")
+            .first()
+        )
+
+        if winning_bid is None:
             auction.status = AuctionStatus.EXPIRED
-            auction.save(update_fields=["status"])
+        else:
+            auction.status = AuctionStatus.SOLD
+            auction.final_price = winning_bid.bid_price
+
+        auction.save(
+            update_fields=["status", "final_price"]
+        )
+
+        return auction
