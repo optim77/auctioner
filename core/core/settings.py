@@ -32,6 +32,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'rest_framework',
     'rest_framework_simplejwt',
     'auction.apps.AuctionConfig',
@@ -156,5 +158,17 @@ CELERY_BEAT_SCHEDULE = {
     "expire-auctions-every-minute": {
         "task": "auction.tasks.expire_auctions_task",
         "schedule": 60.0,
+    },
+}
+
+
+ASGI_APPLICATION = "core.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
     },
 }
