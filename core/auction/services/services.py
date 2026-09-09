@@ -2,7 +2,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 from auction.models import Auction, AuctionStatus
-from bid.models import Bid
+from bid.realtime import publish_auction_ended, publish_auction_started
 
 
 class AuctionServices:
@@ -23,6 +23,7 @@ class AuctionServices:
 
         auction.status = AuctionStatus.ACTIVE
         auction.save(update_fields=["status", "current_price"])
+        transaction.on_commit(lambda: publish_auction_started(auction))
 
     @staticmethod
     @transaction.atomic
@@ -61,7 +62,8 @@ class AuctionServices:
         )
 
         for auction in auctions:
-            AuctionServices.close_auction(auction.id)
+            closed_auction = AuctionServices.close_auction(auction.id)
+            transaction.on_commit(lambda: publish_auction_ended(closed_auction))
 
 
     @staticmethod

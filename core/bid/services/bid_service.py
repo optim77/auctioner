@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 
 from auction.models import Auction, AuctionStatus
 from bid.models import Bid
-from bid.realtime import publish_price_changed
+from bid.realtime import publish_bid_placed
 
 
 class BidService:
@@ -63,6 +63,6 @@ class BidService:
         auction.current_price = bid_price
         auction.save(update_fields=["current_price"])
 
-        publish_price_changed(auction)
+        publish_bid_placed(bid)
 
         return bid

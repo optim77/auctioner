@@ -159,6 +159,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "auction.tasks.expire_auctions_task",
         "schedule": 60.0,
     },
+    "print_basic_logs": {
+            "task": "auction.tasks.do_log_analytics",
+            "schedule": 60.0,
+        },
 }
 
 

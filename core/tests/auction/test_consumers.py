@@ -3,7 +3,7 @@ from asgiref.sync import sync_to_async
 from channels.testing import WebsocketCommunicator
 
 from auction.models import Auction
-from bid.realtime import publish_price_changed
+from bid.realtime import publish_bid_placed
 from bid.services.bid_service import BidService
 from core.asgi import application
 
@@ -25,7 +25,7 @@ async def test_client_can_connect_to_auction_websocket(auction: Auction):
 
 @pytest.mark.asyncio
 @pytest.mark.django_db
-async def test_client_receives_price_changed_event(auction, bidder):
+async def test_client_receives_bid_placed_event(auction, bidder):
     communicator = WebsocketCommunicator(
         application,
         f"/ws/auctions/{auction.id}/",
@@ -45,12 +45,12 @@ async def test_client_receives_price_changed_event(auction, bidder):
         type(auction).objects.get
     )(id=auction.id)
 
-    await sync_to_async(publish_price_changed)(auction)
+    await sync_to_async(publish_bid_placed)(auction)
 
     response = await communicator.receive_json_from()
 
     assert response == {
-        "type": "price_changed",
+        "type": "bid_placed",
         "auction_id": str(auction.id),
         "current_price": "200",
     }
@@ -60,7 +60,7 @@ async def test_client_receives_price_changed_event(auction, bidder):
 
 @pytest.mark.asyncio
 @pytest.mark.django_db
-async def test_price_changed_event_is_sent_only_to_correct_auction(
+async def test_bid_placed_event_is_sent_only_to_correct_auction(
     auction,
     second_auction,
 ):
@@ -83,12 +83,12 @@ async def test_price_changed_event_is_sent_only_to_correct_auction(
     auction.current_price = 200
     await sync_to_async(auction.save)(update_fields=["current_price"])
 
-    await sync_to_async(publish_price_changed)(auction)
+    await sync_to_async(publish_bid_placed)(auction)
 
     response = await communicator_1.receive_json_from()
 
     assert response == {
-        "type": "price_changed",
+        "type": "bid_placed",
         "auction_id": str(auction.id),
         "current_price": "200",
     }

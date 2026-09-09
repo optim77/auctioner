@@ -1,4 +1,8 @@
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from rest_framework import status
+
+from auction.models import Auction
 
 
 class AuctionConsumer(AsyncJsonWebsocketConsumer):
@@ -13,15 +17,48 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
 
         await self.accept()
 
+        auction = await self.get_auction()
+
+        await self.send_json({
+            "type": "auction_state",
+            "auction_id": str(auction.id),
+            "status": auction.status,
+            "current_price": str(auction.current_price),
+            "end_date": auction.end_date.isoformat(),
+        })
+
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name,
         )
 
-    async def price_changed(self, event):
+    async def auction_started(self, event):
         await self.send_json({
-            "type": "price_changed",
+            "type": "auction_started",
             "auction_id": event["auction_id"],
+            "status": event["status"],
+            "start_price": event["start_price"],
+        })
+
+    async def auction_ended(self, event):
+        await self.send_json({
+            "type": "auction_ended",
+            "auction_id": event["auction_id"],
+            "status": event["status"],
+            "final_price": event["final_price"],
+        })
+
+    async def bid_placed(self, event):
+        await self.send_json({
+            "type": "bid_placed",
+            "auction_id": event["auction_id"],
+            "bid_id": event["bid_id"],
+            "bidder_id": event["bidder_id"],
+            "bid_price": event["bid_price"],
             "current_price": event["current_price"],
         })
+
+    @database_sync_to_async
+    def get_auction(self):
+        return Auction.objects.get(id=self.auction_id)
