@@ -1,8 +1,4 @@
-from unittest.mock import patch
-
 import pytest
-from celery.exceptions import Retry
-from django.db import OperationalError
 from django.utils import timezone
 
 from auction.models import AuctionStatus

@@ -22,6 +22,8 @@ class Auction(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
     sold_date = models.DateTimeField(null=True, blank=True)
     currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.PLN)
+    processed = models.BooleanField(default=False)
+    processing = models.BooleanField(default=False)
 
     status = models.CharField(choices=AuctionStatus.choices, default=AuctionStatus.DRAFT, max_length=10)
 

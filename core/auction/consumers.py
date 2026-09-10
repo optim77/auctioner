@@ -1,11 +1,15 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from rest_framework import status
 
 from auction.models import Auction
 
 
 class AuctionConsumer(AsyncJsonWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(args, kwargs)
+        self.group_name = None
+        self.auction_id = None
+
     async def connect(self):
         self.auction_id = self.scope["url_route"]["kwargs"]["auction_id"]
         self.group_name = f"auction_{self.auction_id}"
@@ -57,6 +61,18 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
             "bidder_id": event["bidder_id"],
             "bid_price": event["bid_price"],
             "current_price": event["current_price"],
+        })
+
+    async def bidders_count(self, event):
+        await self.send_json({
+            "type": "bidders_count",
+            "count": event["count"],
+        })
+
+    async def auction_ending_soon(self, event):
+        await self.send_json({
+            "type": "auction_ending_soon",
+            "time_to_end": event["time_to_end"],
         })
 
     @database_sync_to_async

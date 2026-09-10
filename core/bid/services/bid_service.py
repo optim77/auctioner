@@ -1,5 +1,3 @@
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
