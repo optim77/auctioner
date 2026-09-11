@@ -1,8 +1,7 @@
 import pytest
-from django.utils import timezone
-
-from auction.models import AuctionStatus, Auction
+from auction.models import Auction, AuctionStatus
 from auction.services.services import AuctionServices
+from django.utils import timezone
 
 
 @pytest.mark.django_db

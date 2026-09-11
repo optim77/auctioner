@@ -1,7 +1,6 @@
+from categories.models import Category
 from django.db import models
 from django.db.models import ForeignKey
-
-from categories.models import Category
 from users.models import User
 from utils.base_model import BaseModel
 

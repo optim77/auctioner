@@ -1,13 +1,12 @@
 import threading
 
 import pytest
-from django.db import close_old_connections
-from django.utils import timezone
-from rest_framework.exceptions import ValidationError
-
 from auction.models import AuctionStatus
 from bid.models import Bid
 from bid.services.bid_service import BidService
+from django.db import close_old_connections
+from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 
 @pytest.mark.django_db

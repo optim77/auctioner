@@ -1,9 +1,9 @@
 import uuid
 
-from django.db import models
-
 from bid.utils.currencies import Currency
+from django.db import models
 from listing.models import Listing
+
 
 class AuctionStatus(models.TextChoices):
     DRAFT = 'draft', 'Draft'

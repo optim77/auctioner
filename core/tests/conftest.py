@@ -1,11 +1,11 @@
 import pytest
-from django.utils import timezone
-
 from auction.models import Auction, AuctionStatus
 from categories.models import Category
+from django.utils import timezone
 from listing.models import Listing
-from users.models import User
 from rest_framework.test import APIClient
+from users.models import User
+
 
 @pytest.fixture
 def api_client():

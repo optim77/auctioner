@@ -1,9 +1,8 @@
 import pytest
-from rest_framework.exceptions import ValidationError
-
 from auction.models import AuctionStatus
 from auction.services.services import AuctionServices
 from bid.services.bid_service import BidService
+from rest_framework.exceptions import ValidationError
 
 
 @pytest.mark.django_db
@@ -61,12 +60,12 @@ def test_set_sold_from_expired(expired_auction):
 @pytest.mark.django_db
 def test_set_expired_from_expired(expired_auction):
     with pytest.raises(ValidationError):
-        auction = AuctionServices.expire(expired_auction.id)
+        AuctionServices.expire(expired_auction.id)
 
 @pytest.mark.django_db
 def test_close_expired_auction(expired_auction):
     with pytest.raises(ValidationError):
-        closed_auction = AuctionServices.close_auction(expired_auction.id)
+        AuctionServices.close_auction(expired_auction.id)
 
 @pytest.mark.django_db
 def test_close_sold_auction(finished_auction):

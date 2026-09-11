@@ -1,7 +1,6 @@
 import uuid
 
 from django.db import models
-
 from listing.models import Listing
 from users.models import User
 

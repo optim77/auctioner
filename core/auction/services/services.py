@@ -1,8 +1,9 @@
+from bid.realtime import publish_auction_ended, publish_auction_started
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
+
 from auction.models import Auction, AuctionStatus
-from bid.realtime import publish_auction_ended, publish_auction_started
 
 
 class AuctionServices:

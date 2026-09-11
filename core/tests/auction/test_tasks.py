@@ -1,8 +1,7 @@
 import pytest
-from django.utils import timezone
-
 from auction.models import AuctionStatus
 from auction.tasks import expire_auctions_task
+from django.utils import timezone
 
 
 @pytest.mark.django_db

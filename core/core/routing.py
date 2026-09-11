@@ -1,7 +1,5 @@
-from django.urls import path
-
 from auction.consumers import AuctionConsumer
-
+from django.urls import path
 
 websocket_urlpatterns = [
     path(

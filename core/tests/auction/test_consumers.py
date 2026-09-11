@@ -1,10 +1,9 @@
 import pytest
 from asgiref.sync import sync_to_async
-from channels.testing import WebsocketCommunicator
-
 from auction.models import Auction
 from bid.realtime import publish_bid_placed
 from bid.services.bid_service import BidService
+from channels.testing import WebsocketCommunicator
 from core.asgi import application
 
 

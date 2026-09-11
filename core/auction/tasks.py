@@ -1,14 +1,15 @@
 from datetime import timedelta
 
-from celery import shared_task, chain, group
+from bid.models import Bid
+from bid.realtime import publish_auction_ending_soon
+from celery import chain, group, shared_task
 from django.db import OperationalError, transaction
 from django.utils import timezone
+from utils.base_model import BaseModel
 
 from auction.models import Auction, AuctionStatus
 from auction.services.services import AuctionServices
-from bid.models import Bid
-from bid.realtime import publish_auction_ending_soon
-from utils.base_model import BaseModel
+
 
 class MailData(BaseModel):
     user_id: str
@@ -107,10 +108,11 @@ def get_data_for_mail(auction_id):
     acks_late=True,
     retry_jitter=True,
 )
-def send_payment_notification_mail(mail_data: MailData):
-    #send_payment_mail(mail_data)
-    #return mail_data.auction_id
+def send_payment_notification_mail(mail_data):
+    # send_payment_mail(mail_data)
+    # return mail_data["auction_id"]
     pass
+
 
 @shared_task
 def mark_auction_as_processed(auction_id):
@@ -121,6 +123,15 @@ def mark_auction_as_processed(auction_id):
         auction.processing = False
 
         auction.save(update_fields=["processed", "processing"])
+
+@shared_task
+def reset_auction_processing(auction_id):
+    Auction.objects.filter(
+        id=auction_id,
+        processed=False,
+    ).update(
+        processing=False,
+    )
 
 @shared_task
 def process_sold_auctions():
@@ -151,7 +162,7 @@ def process_sold_auctions():
                 get_data_for_mail.s(auction_id),
                 send_payment_notification_mail.s(),
                 mark_auction_as_processed.s(),
-            )
+            ).apply_async(link_error=reset_auction_processing.s(auction_id))
         )
 
     group(jobs).delay()
