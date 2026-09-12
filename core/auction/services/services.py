@@ -1,9 +1,10 @@
-from bid.realtime import publish_auction_ended, publish_auction_started
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from auction.models import Auction, AuctionStatus
+from events.events import AuctionEndedEvent, AuctionStartedEvent
+from events.handler import EventPublisher
 
 
 class AuctionServices:
@@ -24,7 +25,12 @@ class AuctionServices:
 
         auction.status = AuctionStatus.ACTIVE
         auction.save(update_fields=["status", "current_price"])
-        transaction.on_commit(lambda: publish_auction_started(auction))
+        started_event = AuctionStartedEvent(
+            auction_id=auction_id,
+            status=auction.status,
+            start_price=str(auction.start_price),
+        )
+        transaction.on_commit(lambda: EventPublisher.publish(started_event))
 
     @staticmethod
     @transaction.atomic
@@ -64,7 +70,20 @@ class AuctionServices:
 
         for auction in auctions:
             closed_auction = AuctionServices.close_auction(auction.id)
-            transaction.on_commit(lambda: publish_auction_ended(closed_auction))
+
+            close_event = AuctionEndedEvent(
+                auction_id=str(closed_auction.id),
+                status=closed_auction.status,
+                final_price=(
+                    str(closed_auction.final_price)
+                    if closed_auction.final_price is not None
+                    else None
+                ),
+            )
+
+            transaction.on_commit(
+                lambda event=close_event: EventPublisher.publish(event)
+            )
 
 
     @staticmethod

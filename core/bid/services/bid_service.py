@@ -4,7 +4,8 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from bid.models import Bid
-from bid.realtime import publish_bid_placed
+from events.events import BidPlacedEvent
+from events.handler import EventPublisher
 
 
 class BidService:
@@ -61,6 +62,16 @@ class BidService:
         auction.current_price = bid_price
         auction.save(update_fields=["current_price"])
 
-        publish_bid_placed(bid)
+        event = BidPlacedEvent(
+            auction_id=str(auction.id),
+            bid_id=str(bid.id),
+            bidder_id=str(bid.bidder.id),
+            bid_price=str(bid.bid_price),
+            current_price=str(auction.current_price),
+        )
+
+        transaction.on_commit(
+            lambda: EventPublisher.publish(event)
+        )
 
         return bid

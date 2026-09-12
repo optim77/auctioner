@@ -1,22 +1,18 @@
 from datetime import timedelta
 
 from bid.models import Bid
-from bid.realtime import publish_auction_ending_soon
 from celery import chain, group, shared_task
 from django.db import OperationalError, transaction
 from django.utils import timezone
-from utils.base_model import BaseModel
+
+from events.events import AuctionEndingSoonEvent
+from events.handler import EventPublisher
+from mail_service.sender import send_payment_mail, MailData
 
 from auction.models import Auction, AuctionStatus
 from auction.services.services import AuctionServices
+from utils.redis_client import redis_client
 
-
-class MailData(BaseModel):
-    user_id: str
-    email: str
-    listing_id: str
-    listing_name: str
-    auction_id: str
 
 @shared_task(
     autoretry_for=(OperationalError,),
@@ -76,7 +72,11 @@ def check_auctions_ending_soon():
     )
 
     for auction in auctions:
-        publish_auction_ending_soon(auction)
+        ending_soon_event = AuctionEndingSoonEvent(
+            auction_id=auction.id,
+            end_date=auction.end_date,
+        )
+        EventPublisher.publish(ending_soon_event)
         print(
             f"Auction {auction.id} "
             f"ends at ({auction.end_date}) "
@@ -109,8 +109,18 @@ def get_data_for_mail(auction_id):
     retry_jitter=True,
 )
 def send_payment_notification_mail(mail_data):
-    # send_payment_mail(mail_data)
-    # return mail_data["auction_id"]
+    idempotency_key = (
+        f"payment-mail:{mail_data['auction_id']}:{mail_data['user_id']}"
+    )
+    was_added = redis_client.set(idempotency_key, "processing", nx=True, ex=3600)
+    if not was_added:
+        return mail_data["auction_id"]
+    send_payment_mail(mail_data)
+    redis_client.set(
+        idempotency_key,
+        "sent",
+        ex=86400,
+    )
     pass
 
 

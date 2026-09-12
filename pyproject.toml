@@ -27,3 +27,10 @@ dependencies = [
     "tool>=0.8.0",
     "types-channels>=4.3.0.20260518",
 ]
+
+[tool.ruff]
+extend-exclude = ['**/migrations/*']
+
+[tool.ruff.lint]
+per-file-ignores = { "**/migrations/*" = ["ALL"] }
+ignore = ["RUF012"]
