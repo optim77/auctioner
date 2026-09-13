@@ -2,8 +2,12 @@ from asgiref.sync import async_to_sync
 from auction.models import Auction
 from channels.layers import get_channel_layer
 from django.utils import timezone
-
-from events.events import AuctionEndedEvent, BidPlacedEvent, AuctionStartedEvent, AuctionEndingSoonEvent
+from events.events import (
+    AuctionEndedEvent,
+    AuctionEndingSoonEvent,
+    AuctionStartedEvent,
+    BidPlacedEvent,
+)
 
 
 def publish_auction_started(event: AuctionStartedEvent):

@@ -1,11 +1,13 @@
+from datetime import timedelta
+
 import pytest
 from auction.models import Auction, AuctionStatus
 from categories.models import Category
+from django.utils import timezone
 from listing.models import Listing
 from rest_framework.test import APIClient
 from users.models import User
-from datetime import timedelta
-from django.utils import timezone
+
 
 @pytest.fixture
 def api_client():

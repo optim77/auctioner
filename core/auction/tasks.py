@@ -4,14 +4,13 @@ from bid.models import Bid
 from celery import chain, group, shared_task
 from django.db import OperationalError, transaction
 from django.utils import timezone
-
 from events.events import AuctionEndingSoonEvent
 from events.handler import EventPublisher
-from mail_service.sender import send_payment_mail, MailData
+from mail_service.sender import MailData, send_payment_mail
+from utils.redis_client import redis_client
 
 from auction.models import Auction, AuctionStatus
 from auction.services.services import AuctionServices
-from utils.redis_client import redis_client
 
 
 @shared_task(
@@ -116,7 +115,6 @@ def send_payment_notification_mail(mail_data):
         "sent",
         ex=86400,
     )
-    pass
 
 
 @shared_task

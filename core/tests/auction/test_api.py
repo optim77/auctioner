@@ -1,9 +1,9 @@
-import pytest
-from django.utils import timezone
+from datetime import timedelta
 
+import pytest
 from auction.models import Auction, AuctionStatus
 from auction.services.services import AuctionServices
-from datetime import timedelta
+from django.utils import timezone
 
 
 @pytest.mark.django_db

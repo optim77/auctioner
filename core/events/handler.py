@@ -1,5 +1,16 @@
-from bid.realtime import publish_bid_placed, publish_auction_ended, publish_auction_started, publish_auction_ending_soon
-from events.events import BidPlacedEvent, AuctionEndedEvent, AuctionStartedEvent, AuctionEndingSoonEvent
+from bid.realtime import (
+    publish_auction_ended,
+    publish_auction_ending_soon,
+    publish_auction_started,
+    publish_bid_placed,
+)
+
+from events.events import (
+    AuctionEndedEvent,
+    AuctionEndingSoonEvent,
+    AuctionStartedEvent,
+    BidPlacedEvent,
+)
 
 
 def handle_bid_placed(event: BidPlacedEvent):

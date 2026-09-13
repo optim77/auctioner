@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -21,7 +20,7 @@ class AuctionStartedEvent:
 class AuctionEndedEvent:
     auction_id: str
     status: str
-    final_price: Optional[str]
+    final_price: str | None
 
 @dataclass(frozen=True)
 class AuctionEndingSoonEvent:

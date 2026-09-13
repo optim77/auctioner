@@ -1,10 +1,10 @@
 from django.db import transaction
 from django.utils import timezone
+from events.events import AuctionEndedEvent, AuctionStartedEvent
+from events.handler import EventPublisher
 from rest_framework.exceptions import ValidationError
 
 from auction.models import Auction, AuctionStatus
-from events.events import AuctionEndedEvent, AuctionStartedEvent
-from events.handler import EventPublisher
 
 
 class AuctionServices:

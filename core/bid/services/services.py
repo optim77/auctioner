@@ -1,11 +1,11 @@
 from auction.models import Auction, AuctionStatus
 from django.db import transaction
 from django.utils import timezone
+from events.events import BidPlacedEvent
+from events.handler import EventPublisher
 from rest_framework.exceptions import ValidationError
 
 from bid.models import Bid
-from events.events import BidPlacedEvent
-from events.handler import EventPublisher
 
 
 class BidService:

@@ -1,7 +1,8 @@
+from datetime import timedelta
+
 import pytest
 from auction.models import AuctionStatus
 from auction.tasks import expire_auctions_task
-from datetime import timedelta
 from django.utils import timezone
 
 

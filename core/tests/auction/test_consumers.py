@@ -1,15 +1,11 @@
 import pytest
 from asgiref.sync import sync_to_async
-from django.utils import timezone
-
-from auction.models import Auction, AuctionStatus
+from auction.models import Auction
 from auction.services.services import AuctionServices
 from auction.tasks import check_auctions_ending_soon
-from bid.realtime import publish_bid_placed
 from bid.services.services import BidService
 from channels.testing import WebsocketCommunicator
 from core.asgi import application
-from events.events import BidPlacedEvent
 
 
 @pytest.mark.asyncio
