@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from bid.serializers.serializers import BidSerializer
-from bid.services.bid_service import BidService
+from bid.services.services import BidService
 
 
 class BidViewSet(viewsets.GenericViewSet):

@@ -1,11 +1,11 @@
 import pytest
 from auction.models import Auction, AuctionStatus
 from categories.models import Category
-from django.utils import timezone
 from listing.models import Listing
 from rest_framework.test import APIClient
 from users.models import User
-
+from datetime import timedelta
+from django.utils import timezone
 
 @pytest.fixture
 def api_client():
@@ -54,7 +54,7 @@ def auction(listing):
         start_price=100,
         current_price=100,
         start_date=timezone.now(),
-        end_date=timezone.now() + timezone.timedelta(hours=1),
+        end_date=timezone.now() + timedelta(hours=1),
         currency="PLN",
         status=AuctionStatus.ACTIVE,
     )
@@ -66,7 +66,19 @@ def second_auction(second_listing):
         start_price=100,
         current_price=100,
         start_date=timezone.now(),
-        end_date=timezone.now() + timezone.timedelta(hours=1),
+        end_date=timezone.now() + timedelta(hours=1),
+        currency="PLN",
+        status=AuctionStatus.ACTIVE,
+    )
+
+@pytest.fixture
+def auction_ending_soon(second_listing):
+    return Auction.objects.create(
+        listing=second_listing,
+        start_price=100,
+        current_price=100,
+        start_date=timezone.now(),
+        end_date=timezone.now() + timedelta(minutes=1),
         currency="PLN",
         status=AuctionStatus.ACTIVE,
     )
@@ -78,7 +90,7 @@ def draft_auction(listing):
         start_price=100,
         current_price=100,
         start_date=timezone.now(),
-        end_date=timezone.now() + timezone.timedelta(hours=1),
+        end_date=timezone.now() + timedelta(hours=1),
         currency="PLN",
         status=AuctionStatus.DRAFT,
     )
@@ -90,7 +102,7 @@ def expired_auction(listing):
         start_price=100,
         current_price=100,
         start_date=timezone.now(),
-        end_date=timezone.now() + timezone.timedelta(hours=-1),
+        end_date=timezone.now() + timedelta(hours=-1),
         currency="PLN",
         status=AuctionStatus.EXPIRED,
     )
@@ -102,7 +114,7 @@ def finished_auction(listing):
         start_price=100,
         current_price=100,
         start_date=timezone.now(),
-        end_date=timezone.now() + timezone.timedelta(hours=1),
+        end_date=timezone.now() + timedelta(hours=1),
         currency="PLN",
         status=AuctionStatus.SOLD,
     )

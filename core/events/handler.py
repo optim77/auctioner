@@ -30,5 +30,7 @@ class EventPublisher:
 EVENT_HANDLERS = {
     BidPlacedEvent: handle_bid_placed,
     AuctionEndedEvent: handle_auction_ended,
+    AuctionStartedEvent: handle_auction_started,
+    AuctionEndingSoonEvent: handle_auction_ending_soon,
 }
 

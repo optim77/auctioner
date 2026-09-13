@@ -1,9 +1,10 @@
 import threading
+from datetime import timedelta
 
 import pytest
 from auction.models import AuctionStatus
 from bid.models import Bid
-from bid.services.bid_service import BidService
+from bid.services.services import BidService
 from django.db import close_old_connections
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
@@ -54,7 +55,7 @@ def test_seller_cannot_bid_own_auction(auction, seller):
 
 @pytest.mark.django_db
 def test_cannot_bid_on_when_end_date_past(auction, bidder):
-    auction.end_date = timezone.now() - timezone.timedelta(minutes=1)
+    auction.end_date = timezone.now() - timedelta(minutes=1)
     auction.save()
     with pytest.raises(ValidationError):
         BidService.place_bid(

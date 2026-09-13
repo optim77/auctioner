@@ -1,7 +1,7 @@
 import pytest
 from auction.models import AuctionStatus
 from auction.services.services import AuctionServices
-from bid.services.bid_service import BidService
+from bid.services.services import BidService
 from rest_framework.exceptions import ValidationError
 
 

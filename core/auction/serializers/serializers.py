@@ -13,6 +13,5 @@ class AuctionSerializer(serializers.ModelSerializer):
             "final_price",
             "sold_date",
             "status",
-            'start_date',
             'currency'
         ]

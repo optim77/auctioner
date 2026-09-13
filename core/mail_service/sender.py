@@ -1,7 +1,8 @@
-from utils.base_model import BaseModel
+from attr import dataclass
 
 
-class MailData(BaseModel):
+@dataclass
+class MailData:
     user_id: str
     email: str
     listing_id: str

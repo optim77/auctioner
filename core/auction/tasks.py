@@ -77,11 +77,6 @@ def check_auctions_ending_soon():
             end_date=auction.end_date,
         )
         EventPublisher.publish(ending_soon_event)
-        print(
-            f"Auction {auction.id} "
-            f"ends at ({auction.end_date}) "
-            f"current price ({auction.current_price}) "
-        )
 
 @shared_task(
     autoretry_for=(OperationalError,),

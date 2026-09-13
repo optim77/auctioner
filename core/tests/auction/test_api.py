@@ -1,7 +1,9 @@
 import pytest
+from django.utils import timezone
+
 from auction.models import Auction, AuctionStatus
 from auction.services.services import AuctionServices
-from django.utils import timezone
+from datetime import timedelta
 
 
 @pytest.mark.django_db
@@ -32,7 +34,7 @@ def test_unauthenticated_user_can_fetch_auctions(
         {
             "start_price": "120.00",
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -58,7 +60,7 @@ def test_unauthenticated_user_can_fetch_auction(
         {
             "start_price": "120.00",
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -75,10 +77,10 @@ def test_unauthenticated_user_can_fetch_auction(
 @pytest.mark.django_db
 def test_authenticated_user_can_create_auction(
     api_client,
-    bidder,
+    seller,
     listing,
 ):
-    api_client.force_authenticate(user=bidder)
+    api_client.force_authenticate(user=seller)
 
     start_price = "120.00"
 
@@ -87,7 +89,7 @@ def test_authenticated_user_can_create_auction(
         {
             "start_price": start_price,
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -115,7 +117,7 @@ def test_authenticated_user_can_update_auction(
         {
             "start_price": start_price,
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -151,7 +153,7 @@ def test_authenticated_user_cannot_update_auction_status(
         {
             "start_price": start_price,
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -187,7 +189,7 @@ def test_authenticated_user_can_delete_auction(
         {
             "start_price": start_price,
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -223,7 +225,7 @@ def test_other_user_cannot_update_auction(
         {
             "start_price": start_price,
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -262,7 +264,7 @@ def test_other_user_cannot_delete_auction(
         {
             "start_price": start_price,
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -295,7 +297,7 @@ def test_other_user_cannot_create_auction_for_listing(
         {
             "start_price": "120.00",
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -315,7 +317,7 @@ def test_cannot_create_second_auction_for_listing(
         {
             "start_price": "120.00",
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -328,7 +330,7 @@ def test_cannot_create_second_auction_for_listing(
         {
             "start_price": "120.00",
             "start_date": timezone.now(),
-            "end_date": timezone.now() + timezone.timedelta(days=7),
+            "end_date": timezone.now() + timedelta(days=7),
             "listing": str(listing.id),
             "currency": "PLN",
         },
@@ -341,7 +343,7 @@ def test_cannot_create_second_auction_for_listing(
 def test_active_auction_is_expired_after_end_date(
     auction,
 ):
-    auction.end_date = timezone.now() - timezone.timedelta(minutes=1)
+    auction.end_date = timezone.now() - timedelta(minutes=1)
     auction.save(update_fields=["end_date"])
 
     AuctionServices.close_expired_auctions()
@@ -354,7 +356,7 @@ def test_active_auction_is_expired_after_end_date(
 def test_active_auction_is_not_expired_before_end_date(
     auction,
 ):
-    auction.end_date = timezone.now() + timezone.timedelta(hours=1)
+    auction.end_date = timezone.now() + timedelta(hours=1)
     auction.save(update_fields=["end_date"])
 
     AuctionServices.close_expired_auctions()

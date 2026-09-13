@@ -30,7 +30,9 @@ class AuctionServices:
             status=auction.status,
             start_price=str(auction.start_price),
         )
+        # handle_auction_started
         transaction.on_commit(lambda: EventPublisher.publish(started_event))
+        return auction
 
     @staticmethod
     @transaction.atomic
@@ -59,7 +61,7 @@ class AuctionServices:
         auction.status = AuctionStatus.EXPIRED
         auction.save(update_fields=['status'])
         return auction
-
+    #TODO: These two methods need refactor but for now its good for testing duplication events
     @staticmethod
     @transaction.atomic
     def close_expired_auctions():
@@ -80,7 +82,7 @@ class AuctionServices:
                     else None
                 ),
             )
-
+            # handle_auction_ended
             transaction.on_commit(
                 lambda event=close_event: EventPublisher.publish(event)
             )
@@ -111,5 +113,11 @@ class AuctionServices:
         auction.save(
             update_fields=["status", "final_price"]
         )
+        ended_event = AuctionEndedEvent(
+            auction_id=auction.id,
+            status=auction.status,
+            final_price=str(auction.final_price),
+        )
+        transaction.on_commit(lambda event=ended_event: EventPublisher.publish(event))
 
         return auction
