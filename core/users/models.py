@@ -48,6 +48,7 @@ class User(AbstractUser, PermissionsMixin, BaseModel):
     avatar = models.CharField(max_length=200, default='', blank=True, null=True)
     is_staff = models.BooleanField(default=False)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
+    deleted = models.BooleanField(default=False)
 
 
     def is_admin(self):

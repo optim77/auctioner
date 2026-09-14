@@ -6,12 +6,16 @@ from categories.models import Category
 from django.utils import timezone
 from listing.models import Listing
 from rest_framework.test import APIClient
-from users.models import User
+from users.models import User, Role
 
 
 @pytest.fixture
 def api_client():
     return APIClient()
+
+@pytest.fixture
+def test_user(db):
+    return User.objects.create_user(email='test@test.com', username='test', password='test')
 
 @pytest.fixture
 def seller(db):
@@ -22,12 +26,20 @@ def bidder(db):
     return User.objects.create_user(email='bidder@test.com', username='bidder', password='password')
 
 @pytest.fixture
+def admin(db):
+    return User.objects.create_user(email='bidder@test.com', username='bidder', password='password', is_staff=True, role=Role.ADMIN)
+
+@pytest.fixture
 def second_bidder(db):
     return User.objects.create_user(email='second_bidder@test.com', username='second_bidder', password='password')
 
 @pytest.fixture
 def category(db):
-    return Category.objects.create(name='test')
+    return Category.objects.create(name='test', items_amount=1)
+
+@pytest.fixture
+def second_category(db):
+    return Category.objects.create(name='test2')
 
 @pytest.fixture
 def listing(seller, category):

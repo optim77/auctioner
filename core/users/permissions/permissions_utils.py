@@ -1,6 +1,8 @@
 from listing.models import Listing
 from rest_framework import permissions
 from rest_framework.permissions import SAFE_METHODS, BasePermission
+
+from users.models import User
 from watchlist.models import Watchlist
 
 
@@ -11,10 +13,21 @@ class IsAdminOrReadOnly(BasePermission):
         return request.user and request.user.is_staff
 
 class IsOwnerOfListing(BasePermission):
-    def has_object_permission(self, request, view, obj: Listing):
+    def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
             return True
-        return bool(request.user and request.user == obj.seller)
+        if request.method == "POST":
+            return bool(request.user and request.user.is_authenticated)
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user == obj.seller
+        )
 
 class IsOwnerOfAuction(BasePermission):
 
@@ -49,3 +62,9 @@ class IsOwnerOfWatchlist(BasePermission):
 class IsAuthenticatedOrReadOnly(BasePermission):
     def has_permission(self,request,view):
         return request.method in permissions.SAFE_METHODS or request.user and request.user.is_authenticated
+
+class IsAccountOwner(BasePermission):
+    def has_object_permission(self, request, view, obj: User):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return bool(request.user and request.user.is_authenticated and  request.user == obj)
