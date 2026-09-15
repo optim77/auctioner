@@ -1,9 +1,12 @@
-from rest_framework import viewsets
+from django.contrib.auth import logout
+from django.db import transaction
+from rest_framework import viewsets, generics, status, serializers
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.generics import CreateAPIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.permissions.permissions_utils import IsAccountOwner
 from users.models import User
@@ -30,11 +33,38 @@ class LoginView(APIView):
             'access': str(refresh.access_token),
         })
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+class UserViewSet(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAccountOwner]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-    def perform_destroy(self, instance):
-        pass
+    def get_object(self):
+        return self.request.user
+
+    def perform_create(self, serializer):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+    # TODO: need to implement saving process for other fields + emails, etc.
+    def perform_update(self, serializer):
+        user = serializer.instance
+        email = serializer.validated_data.get('email')
+        password = serializer.validated_data.pop('password', None)
+
+        if email is not None:
+            raise serializers.ValidationError({
+                'email': 'Cannot change email'
+            })
+
+        if password:
+            user.set_password(password)
+
+        serializer.save()
+
+        if password:
+            user.save(update_fields=['password'])
+        return user
+
+    @transaction.atomic
+    def perform_destroy(self, request, instance: User):
+        instance.deleted = True
+        instance.save(update_fields=['deleted'])
+        logout(request)

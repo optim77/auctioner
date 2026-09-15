@@ -90,15 +90,74 @@ def test_user_cant_login_with_correct_email_and_wrong_password(
     )
     assert response.status_code == 400
 
+def test_user_can_fetch_their_account(
+        api_client,
+        test_user
+):
+    api_client.force_authenticate(user=test_user)
+    response = api_client.get(
+        "/profile/",
+        format="json"
+    )
+    assert response.status_code == 200
+    assert response.data["email"] == "test@test.com"
 
 def test_user_can_update_their_account(
         api_client,
         test_user
 ):
-    raise NotImplementedError()
+    api_client.force_authenticate(user=test_user)
+    response = api_client.patch(
+        "/profile/",
+        {
+            "username": "test2",
+        },
+        format="json"
+    )
+    test_user.refresh_from_db()
+    assert response.status_code == 200
+    assert test_user.username == "test2"
 
-def test_user_can_delete_their_account(
+def test_user_can_update_their_password_with_correct_hashing(
         api_client,
         test_user
 ):
-    raise NotImplementedError()
+    api_client.force_authenticate(user=test_user)
+    response = api_client.patch(
+        "/profile/",
+        {
+            "password": "passwd123123",
+        },
+        format="json"
+    )
+    test_user.refresh_from_db()
+    assert response.status_code == 200
+    assert "pbkdf2_sha256$1500000$" in test_user.password
+
+def test_user_cant_update_their_email(
+        api_client,
+        test_user
+):
+    api_client.force_authenticate(user=test_user)
+    response = api_client.patch(
+        "/profile/",
+        {
+            "email": "test5@test.com",
+        },
+        format="json"
+    )
+    assert response.status_code == 400
+
+def test_user_cant_post_to_profile(
+        api_client,
+        test_user
+):
+    api_client.force_authenticate(user=test_user)
+    response = api_client.post(
+        "/profile/",
+        {
+            "username": "test",
+        },
+        format="json"
+    )
+    assert response.status_code == 405

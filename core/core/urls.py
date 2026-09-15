@@ -20,6 +20,8 @@ from categories.views import CategoryViewSet
 from django.urls import include, path
 from listing.views import ListingViewSet
 from rest_framework import routers
+
+from users.views import UserViewSet
 from watchlist.views import WatchlistViewSet
 
 router = routers.DefaultRouter()
@@ -36,5 +38,6 @@ urlpatterns = [
     ),
     path('', include(router.urls)),
     path("auth/", include("users.urls")),
+    path('profile/', UserViewSet.as_view()),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]
