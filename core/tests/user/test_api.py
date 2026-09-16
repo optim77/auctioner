@@ -161,3 +161,66 @@ def test_user_cant_post_to_profile(
         format="json"
     )
     assert response.status_code == 405
+
+def test_unauthenticated_user_cannot_search_users(
+        api_client,
+        test_user
+):
+    response = api_client.get(
+        "/users/",
+        {
+            "username": "test"
+        },
+        format="json"
+    )
+    assert response.status_code == 401
+
+def test_unauthenticated_user_cant_fetch_user(
+        api_client,
+        bidder
+):
+    response = api_client.get(
+        f"/users/{bidder.id}/",
+        format="json"
+    )
+    assert response.status_code == 401
+
+
+def test_authenticated_user_can_list_users(
+        api_client,
+        test_user,
+        bidder
+):
+    api_client.force_authenticate(user=test_user)
+    response = api_client.get(
+        "/users/",
+        format="json"
+    )
+    assert response.data['count'] == 2
+    assert response.status_code == 200
+
+def test_authenticated_user_can_search_users(
+        api_client,
+        test_user,
+        bidder
+):
+    api_client.force_authenticate(user=test_user)
+    response = api_client.get(
+        "/users/?search=bidder",
+        format="json"
+    )
+    assert response.status_code == 200
+    assert response.data["username"] == "bidder"
+
+def test_authenticated_user_can_fetch_user(
+        api_client,
+        test_user,
+        bidder
+):
+    api_client.force_authenticate(user=test_user)
+    response = api_client.get(
+        f"/users/{bidder.id}/",
+        format="json"
+    )
+    assert response.status_code == 200
+    assert response.data["username"] == "bidder"

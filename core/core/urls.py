@@ -21,7 +21,7 @@ from django.urls import include, path
 from listing.views import ListingViewSet
 from rest_framework import routers
 
-from users.views import UserViewSet
+from users.views import ProfileViewSet, UserViewSet
 from watchlist.views import WatchlistViewSet
 
 router = routers.DefaultRouter()
@@ -38,6 +38,12 @@ urlpatterns = [
     ),
     path('', include(router.urls)),
     path("auth/", include("users.urls")),
-    path('profile/', UserViewSet.as_view()),
+    path('profile/', ProfileViewSet.as_view()),
+    path('users/', UserViewSet.as_view({
+        'get': 'list',
+    })),
+    path('users/<uuid:id>/', UserViewSet.as_view({
+        'get': 'retrieve',
+    })),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]
