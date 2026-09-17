@@ -5,7 +5,7 @@ from celery import chain, group, shared_task
 from django.db import OperationalError, transaction
 from django.utils import timezone
 from events.events import AuctionEndingSoonEvent
-from events.handler import EventPublisher
+from events.ws.publisher import EventPublisher
 from mail_service.sender import MailData, send_payment_mail
 from utils.redis_client import redis_client
 

@@ -1,4 +1,4 @@
-from bid.realtime import (
+from events.ws.realtime import (
     publish_auction_ended,
     publish_auction_ending_soon,
     publish_auction_started,
@@ -12,36 +12,21 @@ from events.events import (
     BidPlacedEvent,
 )
 
-
-def handle_bid_placed(event: BidPlacedEvent):
+def handle_bid_placed(event: BidPlacedEvent) -> None:
     publish_bid_placed(event)
 
-def handle_auction_started(event: AuctionStartedEvent):
+def handle_auction_started(event: AuctionStartedEvent) -> None:
     publish_auction_started(event)
 
-def handle_auction_ended(event: AuctionEndedEvent):
+def handle_auction_ended(event: AuctionEndedEvent) -> None:
     publish_auction_ended(event)
 
-def handle_auction_ending_soon(event : AuctionEndingSoonEvent):
+def handle_auction_ending_soon(event : AuctionEndingSoonEvent) -> None:
     publish_auction_ending_soon(event)
 
-class EventPublisher:
-    @staticmethod
-    def publish(event):
-        handler = EVENT_HANDLERS.get(type(event))
-
-        if handler is None:
-            raise ValueError(
-                f"No handler registered for {type(event).__name__}"
-            )
-
-        handler(event)
-
-
-EVENT_HANDLERS = {
+WS_EVENT_HANDLERS  = {
     BidPlacedEvent: handle_bid_placed,
     AuctionEndedEvent: handle_auction_ended,
     AuctionStartedEvent: handle_auction_started,
     AuctionEndingSoonEvent: handle_auction_ending_soon,
 }
-

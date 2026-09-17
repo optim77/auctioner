@@ -210,7 +210,7 @@ def test_authenticated_user_can_search_users(
         format="json"
     )
     assert response.status_code == 200
-    assert response.data["username"] == "bidder"
+    assert response.data["results"][0]['username'] == "bidder"
 
 def test_authenticated_user_can_fetch_user(
         api_client,

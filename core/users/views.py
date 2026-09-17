@@ -3,7 +3,6 @@ from django.db import transaction
 from django.db.models import QuerySet
 from rest_framework import viewsets, generics, status, serializers
 from rest_framework.generics import CreateAPIView
-from rest_framework.mixins import _MT
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -41,10 +40,11 @@ class ProfileViewSet(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         return self.request.user
 
-    def perform_create(self, serializer):
+    def perform_create(self):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     # TODO: need to implement saving process for other fields + emails, etc.
-    def perform_update(self, serializer) -> _MT | None:
+
+    def perform_update(self, serializer):
         user = serializer.instance
         email = serializer.validated_data.get('email')
         password = serializer.validated_data.pop('password', None)

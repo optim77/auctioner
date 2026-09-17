@@ -1,19 +1,25 @@
+from uuid import UUID
+
 from auction.models import Auction, AuctionStatus
 from django.db import transaction
 from django.utils import timezone
+
 from events.events import BidPlacedEvent
-from events.handler import EventPublisher
+from events.kafka.events import BidOutbidEvent
+from events.kafka.publisher import KafkaPublisher
+from events.ws.publisher import EventPublisher
 from rest_framework.exceptions import ValidationError
 
 from bid.models import Bid
+from users.models import User
 
 
 class BidService:
 
     @staticmethod
     @transaction.atomic
-    def place_bid(*, auction_id, bidder, bid_price):
-        auction = (
+    def place_bid(*, auction_id: UUID, bidder: User, bid_price: int) -> Bid:
+        auction: Auction = (
             Auction.objects
             .select_for_update()
             .get(id=auction_id)
@@ -41,7 +47,7 @@ class BidService:
             .first()
         )
 
-        minimum_bid = (
+        minimum_bid: int = (
             highest_bid.bid_price
             if highest_bid
             else auction.start_price
@@ -62,16 +68,30 @@ class BidService:
         auction.current_price = bid_price
         auction.save(update_fields=["current_price"])
 
-        event = BidPlacedEvent(
-            auction_id=str(auction.id),
-            bid_id=str(bid.id),
-            bidder_id=str(bid.bidder.id),
+        bid_placed_event = BidPlacedEvent(
+            auction_id=auction.id,
+            bid_id=bid.id,
+            bidder_id=bid.bidder.id,
             bid_price=str(bid.bid_price),
             current_price=str(auction.current_price),
         )
 
+
         transaction.on_commit(
-            lambda: EventPublisher.publish(event)
+            lambda: EventPublisher.publish(bid_placed_event)
         )
+
+        if highest_bid:
+            outbid_event = BidOutbidEvent(
+                auction_id=auction.id,
+                bid_price=str(bid.bid_price),
+                receiver_id=highest_bid.bidder.id,
+                listing_id=auction.listing.id,
+                listing_name=auction.listing.name,
+            )
+
+            transaction.on_commit(
+                lambda event=outbid_event: KafkaPublisher.publish(event)
+            )
 
         return bid

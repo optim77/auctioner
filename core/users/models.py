@@ -51,14 +51,17 @@ class User(AbstractUser, PermissionsMixin, BaseModel):
     deleted = models.BooleanField(default=False)
 
 
-    def is_admin(self):
+    def is_admin(self) -> bool:
         return self.role == User.Role.ADMIN
 
-    def is_moderator(self):
+    def is_moderator(self) -> bool:
         return self.role == User.Role.MOD
 
     def __str__(self):
         return self.email
+
+    class Meta:
+        ordering = ('-created_at',)
 
     objects = UserManager()
     USERNAME_FIELD = 'email'
