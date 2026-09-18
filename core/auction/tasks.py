@@ -4,7 +4,7 @@ from bid.models import Bid
 from celery import chain, group, shared_task
 from django.db import OperationalError, transaction
 from django.utils import timezone
-from events.events import AuctionEndingSoonEvent
+from events.ws.events import AuctionEndingSoonEvent
 from events.ws.publisher import EventPublisher
 from mail_service.sender import MailData, send_payment_mail
 from utils.redis_client import redis_client
@@ -20,7 +20,7 @@ from auction.services.services import AuctionServices
     acks_late=True,
     retry_jitter=True,
 )
-def expire_auctions_task():
+def expire_auctions_task() -> None:
     AuctionServices.close_expired_auctions()
 
 
@@ -31,7 +31,7 @@ def expire_auctions_task():
     acks_late=True,
     retry_jitter=True,
 )
-def do_log_analytics():
+def do_log_analytics() -> None:
     auctions = Auction.objects.all()
 
     active = auctions.filter(
@@ -60,7 +60,7 @@ def do_log_analytics():
     acks_late=True,
     retry_jitter=True,
 )
-def check_auctions_ending_soon():
+def check_auctions_ending_soon() -> None:
     now = timezone.now()
     soon = now + timedelta(minutes=5)
 
@@ -84,16 +84,16 @@ def check_auctions_ending_soon():
     acks_late=True,
     retry_jitter=True,
 )
-def get_data_for_mail(auction_id):
+def get_data_for_mail(auction_id) -> MailData:
     auction = Auction.objects.get(id=auction_id)
     highest_bid = auction.bids.order_by("-bid_price").first()
-    return MailData({
-            "user_id": highest_bid.bidder.user_id,
-            "email": highest_bid.bidder.email,
-            "listing_id": auction.listing.listing_id,
-            "listing_name": auction.listing.listing_name,
-            "auction_id": auction.id,
-        })
+    return MailData(
+        user_id=highest_bid.bidder.user_id,
+        email=highest_bid.bidder.email,
+        listing_id=auction.listing.listing_id,
+        listing_name=auction.listing.listing_name,
+        auction_id=auction_id,
+        )
 
 @shared_task(
     autoretry_for=(OperationalError,),
@@ -102,7 +102,7 @@ def get_data_for_mail(auction_id):
     acks_late=True,
     retry_jitter=True,
 )
-def send_payment_notification_mail(mail_data):
+def send_payment_notification_mail(mail_data) -> None:
     idempotency_key = (
         f"payment-mail:{mail_data['auction_id']}:{mail_data['user_id']}"
     )
@@ -118,7 +118,7 @@ def send_payment_notification_mail(mail_data):
 
 
 @shared_task
-def mark_auction_as_processed(auction_id):
+def mark_auction_as_processed(auction_id) -> None:
     with transaction.atomic():
         auction = Auction.objects.select_for_update().get(id=auction_id)
 
@@ -128,7 +128,7 @@ def mark_auction_as_processed(auction_id):
         auction.save(update_fields=["processed", "processing"])
 
 @shared_task
-def reset_auction_processing(auction_id):
+def reset_auction_processing(auction_id) -> None:
     Auction.objects.filter(
         id=auction_id,
         processed=False,
@@ -137,7 +137,7 @@ def reset_auction_processing(auction_id):
     )
 
 @shared_task
-def process_sold_auctions():
+def process_sold_auctions() -> None:
     with transaction.atomic():
         auctions = list(
             Auction.objects

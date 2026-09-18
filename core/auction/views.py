@@ -16,21 +16,21 @@ class AuctionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwnerOfAuction]
 
     @action(detail=True, methods=['post'])
-    def activate(self, request, pk=None):
+    def activate(self, request, pk=None) -> Response:
         auction = AuctionServices.activate(pk)
         return Response(
             AuctionSerializer(auction), status=status.HTTP_200_OK
         )
 
     @action(detail=True, methods=['post'])
-    def finish(self, request, pk=None):
+    def finish(self, request, pk=None) -> Response:
         auction = AuctionServices.finish(pk)
         return Response(
             AuctionSerializer(auction), status=status.HTTP_200_OK
         )
 
     @action(detail=True, methods=['post'])
-    def expire(self, request, pk=None):
+    def expire(self, request, pk=None) -> Response:
         auction = AuctionServices.expire(pk)
         return Response(
             AuctionSerializer(auction), status=status.HTTP_200_OK

@@ -2,7 +2,7 @@ from asgiref.sync import async_to_sync
 from auction.models import Auction
 from channels.layers import get_channel_layer
 from django.utils import timezone
-from events.events import (
+from events.ws.events import (
     AuctionEndedEvent,
     AuctionEndingSoonEvent,
     AuctionStartedEvent,

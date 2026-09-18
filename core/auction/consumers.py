@@ -10,7 +10,7 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
         self.group_name = None
         self.auction_id = None
 
-    async def connect(self):
+    async def connect(self) -> None:
         self.auction_id = self.scope["url_route"]["kwargs"]["auction_id"]
         self.group_name = f"auction_{self.auction_id}"
 
@@ -31,13 +31,13 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
             "end_date": auction.end_date.isoformat(),
         })
 
-    async def disconnect(self, close_code):
+    async def disconnect(self, code) -> None:
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name,
         )
 
-    async def auction_started(self, event):
+    async def auction_started(self, event) -> None:
         await self.send_json({
             "type": "auction_started",
             "auction_id": event["auction_id"],
@@ -45,7 +45,7 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
             "start_price": event["start_price"],
         })
 
-    async def auction_ended(self, event):
+    async def auction_ended(self, event) -> None:
         await self.send_json({
             "type": "auction_ended",
             "auction_id": event["auction_id"],
@@ -53,7 +53,7 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
             "final_price": event["final_price"],
         })
 
-    async def bid_placed(self, event):
+    async def bid_placed(self, event) -> None:
         await self.send_json({
             "type": "bid_placed",
             "auction_id": event["auction_id"],
@@ -63,18 +63,18 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
             "current_price": event["current_price"],
         })
 
-    async def bidders_count(self, event):
+    async def bidders_count(self, event) -> None:
         await self.send_json({
             "type": "bidders_count",
             "count": event["count"],
         })
 
-    async def auction_ending_soon(self, event):
+    async def auction_ending_soon(self, event) -> None:
         await self.send_json({
             "type": "auction_ending_soon",
             "time_to_end": event["time_to_end"],
         })
 
     @database_sync_to_async
-    def get_auction(self):
+    def get_auction(self) -> Auction:
         return Auction.objects.get(id=self.auction_id)

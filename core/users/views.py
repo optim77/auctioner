@@ -40,11 +40,11 @@ class ProfileViewSet(generics.RetrieveUpdateDestroyAPIView):
     def get_object(self):
         return self.request.user
 
-    def perform_create(self):
+    def perform_create(self) -> Response:
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
     # TODO: need to implement saving process for other fields + emails, etc.
 
-    def perform_update(self, serializer):
+    def perform_update(self, serializer) -> User:
         user = serializer.instance
         email = serializer.validated_data.get('email')
         password = serializer.validated_data.pop('password', None)

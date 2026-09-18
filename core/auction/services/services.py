@@ -1,6 +1,6 @@
 from django.db import transaction
 from django.utils import timezone
-from events.events import AuctionEndedEvent, AuctionStartedEvent
+from events.ws.events import AuctionEndedEvent, AuctionStartedEvent
 from events.ws.publisher import EventPublisher
 from rest_framework.exceptions import ValidationError
 
@@ -11,7 +11,7 @@ class AuctionServices:
 
     @staticmethod
     @transaction.atomic
-    def activate(auction_id):
+    def activate(auction_id) -> Auction:
         auction = (Auction.objects.select_for_update().get(id=auction_id))
         if auction.status == AuctionStatus.ACTIVE:
             raise ValidationError('Auction is already active')
@@ -36,7 +36,7 @@ class AuctionServices:
 
     @staticmethod
     @transaction.atomic
-    def finish(auction_id):
+    def finish(auction_id) -> Auction:
         auction = (Auction.objects.select_for_update().get(id=auction_id))
         if auction.status == AuctionStatus.DRAFT:
             raise ValidationError('Cannot sell draft auction')
@@ -50,7 +50,7 @@ class AuctionServices:
 
     @staticmethod
     @transaction.atomic
-    def expire(auction_id):
+    def expire(auction_id) -> Auction:
         auction = (Auction.objects.select_for_update().get(id=auction_id))
         if auction.status == AuctionStatus.SOLD:
             raise ValidationError('Cannot expire sold auction')
@@ -62,9 +62,11 @@ class AuctionServices:
         auction.save(update_fields=['status'])
         return auction
     #TODO: These two methods need refactor but for now its good for testing duplication events
+
+
     @staticmethod
     @transaction.atomic
-    def close_expired_auctions():
+    def close_expired_auctions() -> None:
         auctions = Auction.objects.filter(
             status=AuctionStatus.ACTIVE,
             end_date__lte=timezone.now(),
@@ -74,7 +76,7 @@ class AuctionServices:
             closed_auction = AuctionServices.close_auction(auction.id)
 
             close_event = AuctionEndedEvent(
-                auction_id=str(closed_auction.id),
+                auction_id=closed_auction.id,
                 status=closed_auction.status,
                 final_price=(
                     str(closed_auction.final_price)
@@ -90,7 +92,7 @@ class AuctionServices:
 
     @staticmethod
     @transaction.atomic
-    def close_auction(auction_id):
+    def close_auction(auction_id) -> Auction:
         auction = (
             Auction.objects
             .select_for_update()

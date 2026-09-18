@@ -6,7 +6,7 @@ from events.kafka.realtime import (
     publish_bid_outbid,
 )
 
-from events.events import (
+from events.ws.events import (
     AuctionEndedEvent,
     AuctionStartedEvent,
     BidPlacedEvent,

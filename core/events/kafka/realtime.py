@@ -1,5 +1,5 @@
 from core.kafka import producer
-from events.events import (
+from events.ws.events import (
     AuctionEndedEvent,
     AuctionStartedEvent,
     BidPlacedEvent,

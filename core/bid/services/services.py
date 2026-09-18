@@ -4,7 +4,7 @@ from auction.models import Auction, AuctionStatus
 from django.db import transaction
 from django.utils import timezone
 
-from events.events import BidPlacedEvent
+from events.ws.events import BidPlacedEvent
 from events.kafka.events import BidOutbidEvent
 from events.kafka.publisher import KafkaPublisher
 from events.ws.publisher import EventPublisher
@@ -75,7 +75,7 @@ class BidService:
             bid_price=str(bid.bid_price),
             current_price=str(auction.current_price),
         )
-
+        print(bid_placed_event)
 
         transaction.on_commit(
             lambda: EventPublisher.publish(bid_placed_event)

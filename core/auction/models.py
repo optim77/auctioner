@@ -27,7 +27,7 @@ class Auction(models.Model):
 
     status = models.CharField(choices=AuctionStatus.choices, default=AuctionStatus.DRAFT, max_length=10)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         if self.current_price is None:
             self.current_price = self.start_price
         super().save(*args, **kwargs)

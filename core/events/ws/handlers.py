@@ -5,7 +5,7 @@ from events.ws.realtime import (
     publish_bid_placed,
 )
 
-from events.events import (
+from events.ws.events import (
     AuctionEndedEvent,
     AuctionEndingSoonEvent,
     AuctionStartedEvent,
