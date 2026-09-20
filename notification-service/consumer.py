@@ -1,9 +1,7 @@
 import json
 
 from kafka import KafkaConsumer
-from parsers import parse_outbid_event
-from notification_events import OutbidDTO
-from handlers import handle_outbid_event
+from dispatcher import NotificationServiceDispatcher
 
 consumer = KafkaConsumer(
     "bid.outbid",
@@ -14,6 +12,4 @@ consumer = KafkaConsumer(
 )
 
 for message in consumer:
-    print(message)
-    event: OutbidDTO = parse_outbid_event(message.value)
-    handle_outbid_event(event)
+    NotificationServiceDispatcher.dispatch(message.value)

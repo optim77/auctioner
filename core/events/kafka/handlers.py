@@ -1,4 +1,3 @@
-from events.kafka.events import BidOutbidEvent
 from events.kafka.realtime import (
     publish_auction_ended,
     publish_auction_started,
@@ -6,10 +5,11 @@ from events.kafka.realtime import (
     publish_bid_outbid,
 )
 
-from events.ws.events import (
+from events.kafka.events import (
+    BidPlacedEvent,
     AuctionEndedEvent,
     AuctionStartedEvent,
-    BidPlacedEvent,
+    BidOutbidEvent,
 )
 
 def handle_bid_placed(event: BidPlacedEvent) -> None:

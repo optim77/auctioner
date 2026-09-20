@@ -55,8 +55,6 @@ class IsOwnerOfAuction(BasePermission):
 
 class IsOwnerOfWatchlist(BasePermission):
     def has_object_permission(self, request, view, obj: Watchlist):
-        if request.method in permissions.SAFE_METHODS:
-            return True
         return bool(request.user and request.user == obj.user)
 
 class IsAuthenticatedOrReadOnly(BasePermission):

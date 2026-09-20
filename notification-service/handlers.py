@@ -10,3 +10,6 @@ def handle_outbid_event(e: OutbidDTO):
 
 
 
+NOTIFICATION_EVENTS = {
+    OutbidDTO: handle_outbid_event
+}

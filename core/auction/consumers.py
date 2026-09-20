@@ -6,9 +6,9 @@ from auction.models import Auction
 
 class AuctionConsumer(AsyncJsonWebsocketConsumer):
     def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
-        self.group_name = None
-        self.auction_id = None
+        super().__init__(*args, **kwargs)
+        self.group_name: str | None = None
+        self.auction_id: str | None = None
 
     async def connect(self) -> None:
         self.auction_id = self.scope["url_route"]["kwargs"]["auction_id"]
@@ -32,10 +32,11 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
         })
 
     async def disconnect(self, code) -> None:
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name,
-        )
+        if self.group_name is not None:
+            await self.channel_layer.group_discard(
+                self.group_name,
+                self.channel_name,
+            )
 
     async def auction_started(self, event) -> None:
         await self.send_json({

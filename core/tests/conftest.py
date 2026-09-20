@@ -7,6 +7,7 @@ from django.utils import timezone
 from listing.models import Listing
 from rest_framework.test import APIClient
 from users.models import User, Role
+from watchlist.models import Watchlist
 
 
 @pytest.fixture
@@ -40,6 +41,10 @@ def category(db):
 @pytest.fixture
 def second_category(db):
     return Category.objects.create(name='test2')
+
+@pytest.fixture
+def watchlist(seller, listing):
+    return Watchlist.objects.create(listing=listing, user=seller, notifications_enabled=True)
 
 @pytest.fixture
 def listing(seller, category):

@@ -9,7 +9,7 @@ class BaseEvent(ABC):
     auction_id: UUID
 
 @dataclass(frozen=True)
-class KafkaBidPlacedEvent(BaseEvent):
+class BidPlacedEvent(BaseEvent):
     bid_id: UUID
     bidder_id: UUID
     bid_price: str

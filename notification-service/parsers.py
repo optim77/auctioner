@@ -2,7 +2,6 @@ from notification_events import OutbidPayload, OutbidDTO
 
 def parse_outbid_event(data: dict) -> OutbidDTO:
     payload = data["payload"]
-    print(payload)
     return OutbidDTO(
         event_type=data["event_type"],
         payload=OutbidPayload(
@@ -13,3 +12,8 @@ def parse_outbid_event(data: dict) -> OutbidDTO:
             bid_price=payload["bid_price"],
         ),
     )
+
+
+PARSER_EVENTS = {
+    "bid.outbid": parse_outbid_event,
+}
