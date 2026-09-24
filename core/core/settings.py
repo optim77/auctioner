@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'bid.apps.BidConfig',
     'categories.apps.CategoriesConfig',
     'listing.apps.ListingConfig',
+    'rating.apps.RatingConfig',
     'users.apps.UsersConfig',
     'watchlist.apps.WatchlistConfig',
     'django.contrib.admin',

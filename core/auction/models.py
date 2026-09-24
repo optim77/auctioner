@@ -3,6 +3,7 @@ import uuid
 from bid.utils.currencies import Currency
 from django.db import models
 from listing.models import Listing
+from users.models import User
 
 
 class AuctionStatus(models.TextChoices):
@@ -24,6 +25,7 @@ class Auction(models.Model):
     currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.PLN)
     processed = models.BooleanField(default=False)
     processing = models.BooleanField(default=False)
+    winner = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
 
     status = models.CharField(choices=AuctionStatus.choices, default=AuctionStatus.DRAFT, max_length=10)
 

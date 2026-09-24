@@ -21,6 +21,7 @@ from django.urls import include, path
 from listing.views import ListingViewSet
 from rest_framework import routers
 
+from rating.views import RatingViewSet
 from users.views import ProfileViewSet, UserViewSet
 from watchlist.views import WatchlistViewSet
 
@@ -29,6 +30,7 @@ router.register(r'auctions', AuctionViewSet, basename='auction')
 router.register(r'category', CategoryViewSet, basename='category')
 router.register(r'listing', ListingViewSet, basename='listing')
 router.register(r'watchlist', WatchlistViewSet, basename='watchlist')
+router.register(r"rating", RatingViewSet, basename='rating')
 
 urlpatterns = [
     path(

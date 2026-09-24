@@ -2,6 +2,7 @@ from listing.models import Listing
 from rest_framework import permissions
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
+from rating.models import Rating
 from users.models import User
 from watchlist.models import Watchlist
 
@@ -28,6 +29,10 @@ class IsOwnerOfListing(BasePermission):
             and request.user.is_authenticated
             and request.user == obj.seller
         )
+
+class IsOwnerOfRating(BasePermission):
+    def has_object_permission(self, request, view, obj: Rating):
+        return bool(request.user and request.user.is_authenticated and request.user == obj.author)
 
 class IsOwnerOfAuction(BasePermission):
 

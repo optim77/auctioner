@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from events.ws.events import BidPlacedEvent
-from events.kafka.events import BidOutbidEvent
+from events.kafka.events import KafkaBidOutbidEvent
 from events.kafka.publisher import KafkaPublisher
 from events.ws.publisher import EventPublisher
 from rest_framework.exceptions import ValidationError
@@ -82,7 +82,7 @@ class BidService:
         )
 
         if highest_bid:
-            outbid_event = BidOutbidEvent(
+            outbid_event = KafkaBidOutbidEvent(
                 auction_id=auction.id,
                 bid_price=str(bid.bid_price),
                 receiver_id=highest_bid.bidder.id,

@@ -1,5 +1,3 @@
-from datetime import timezone
-
 from categories.models import Category
 from django.db import models
 from django.db.models import ForeignKey
@@ -12,7 +10,7 @@ class Listing(BaseModel):
     name = models.CharField(max_length=200)
     description = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     images = models.JSONField(null=True, blank=True)
 
     class Meta:
