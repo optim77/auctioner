@@ -1,5 +1,6 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser, PermissionsMixin
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 from utils.base_model import BaseModel
 
@@ -49,6 +50,8 @@ class User(AbstractUser, PermissionsMixin, BaseModel):
     is_staff = models.BooleanField(default=False)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     deleted = models.BooleanField(default=False)
+    rating = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
+    sum_user_rating = models.BooleanField(default=False)
 
 
     def is_admin(self) -> bool:

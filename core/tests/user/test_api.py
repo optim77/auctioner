@@ -1,5 +1,6 @@
 import pytest
 
+from auction.models import Auction
 from users.models import User
 
 
@@ -224,3 +225,18 @@ def test_authenticated_user_can_fetch_user(
     )
     assert response.status_code == 200
     assert response.data["username"] == "bidder"
+
+def test_fetch_won_auction(
+        api_client,
+        bidder,
+        finished_auction
+):
+    api_client.force_authenticate(user=bidder)
+
+    response = api_client.get(
+        "/profile/won_auctions/",
+        format="json"
+    )
+    db_auction = Auction.objects.get(id=finished_auction.pk)
+    assert response.data['results'][0]['winner'] == bidder.id
+    assert db_auction.winner.id == bidder.id

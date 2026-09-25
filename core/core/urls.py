@@ -22,7 +22,7 @@ from listing.views import ListingViewSet
 from rest_framework import routers
 
 from rating.views import RatingViewSet
-from users.views import ProfileViewSet, UserViewSet
+from users.views import ProfileViewSet, UserViewSet, WonAuctionsView
 from watchlist.views import WatchlistViewSet
 
 router = routers.DefaultRouter()
@@ -38,9 +38,26 @@ urlpatterns = [
         BidViewSet.as_view({"post": "create"}),
         name='bid',
     ),
+    path(
+        'rating/<uuid:user_id>/',
+        RatingViewSet.as_view({
+            "get": "list",
+            "post": "create",
+        }),
+    ),
+    path(
+        'rating/<uuid:user_id>/<uuid:id>/',
+        RatingViewSet.as_view({
+            "get": "retrieve",
+            "put": "update",
+            "patch": "partial_update",
+            "delete": "destroy",
+        }),
+    ),
     path('', include(router.urls)),
     path("auth/", include("users.urls")),
     path('profile/', ProfileViewSet.as_view()),
+    path("profile/won_auctions/", WonAuctionsView.as_view({"get": "list"})),
     path('users/', UserViewSet.as_view({
         'get': 'list',
     })),

@@ -15,9 +15,12 @@ class Rating(models.Model):
     rated_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='rated_user')
     rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
     opinion = models.TextField(validators=[MaxLengthValidator(1000)])
-    auction = models.ForeignKey(Auction, on_delete=models.CASCADE, related_name='auction', null=True)
+    auction = models.ForeignKey(Auction, on_delete=models.CASCADE, related_name='auction')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return str(self.listing.name)
+
+    class Meta:
+        ordering = ['-created_at']

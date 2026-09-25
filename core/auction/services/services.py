@@ -117,7 +117,7 @@ class AuctionServices:
         else:
             auction.status = AuctionStatus.SOLD
             auction.final_price = winning_bid.bid_price
-            auction.winner = winning_bid.user.id
+            auction.winner = winning_bid.bidder
 
         auction.save(
             update_fields=["status", "final_price"]
@@ -132,8 +132,8 @@ class AuctionServices:
         return auction
 
     @staticmethod
-    def notify_watchers(self, auction: Auction) -> None:
-        watchers = Watchlist.objects.filter(auction_id=auction.id)
+    def notify_watchers(auction: Auction) -> None:
+        watchers = Watchlist.objects.filter(auction=auction.id)
         for watcher in watchers:
             if watcher.user.status == AuctionStatus.ACTIVE:
                 kafka_event = KafkaAuctionStartedEvent(
@@ -148,7 +148,7 @@ class AuctionServices:
                 KafkaPublisher.publish(kafka_event)
 
     @staticmethod
-    def notify_bidders(self, auction: Auction) -> None:
+    def notify_bidders(auction: Auction) -> None:
         bidders = Bid.objects.filter(auction_id=auction.id).order_by("-bid_price")
         for bidder in bidders:
             event = KafkaAuctionEndedEvent(

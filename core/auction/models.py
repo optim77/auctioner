@@ -26,6 +26,8 @@ class Auction(models.Model):
     processed = models.BooleanField(default=False)
     processing = models.BooleanField(default=False)
     winner = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     status = models.CharField(choices=AuctionStatus.choices, default=AuctionStatus.DRAFT, max_length=10)
 
@@ -33,3 +35,6 @@ class Auction(models.Model):
         if self.current_price is None:
             self.current_price = self.start_price
         super().save(*args, **kwargs)
+
+    class Meta:
+        ordering = ['-created_at']

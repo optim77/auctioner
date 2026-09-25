@@ -6,6 +6,8 @@ from categories.models import Category
 from django.utils import timezone
 from listing.models import Listing
 from rest_framework.test import APIClient
+
+from rating.models import Rating
 from users.models import User, Role
 from watchlist.models import Watchlist
 
@@ -17,6 +19,10 @@ def api_client():
 @pytest.fixture
 def test_user(db):
     return User.objects.create_user(email='test@test.com', username='test', password='test')
+
+@pytest.fixture
+def test_user_2(db):
+    return User.objects.create_user(email='test2@test.com', username='test2', password='test2')
 
 @pytest.fixture
 def seller(db):
@@ -127,13 +133,26 @@ def expired_auction(listing):
     )
 
 @pytest.fixture
-def finished_auction(listing):
+def finished_auction(second_listing, bidder):
     return Auction.objects.create(
-        listing=listing,
+        listing=second_listing,
         start_price=100,
         current_price=100,
         start_date=timezone.now(),
-        end_date=timezone.now() + timedelta(hours=1),
+        end_date=timezone.now() + timedelta(hours=-1),
+        final_price=120,
         currency="PLN",
         status=AuctionStatus.SOLD,
+        winner=bidder
     )
+
+@pytest.fixture
+def rating(seller, bidder, listing, auction, finished_auction):
+    return Rating.objects.create(
+        author=bidder,
+        listing=listing,
+        rated_user=seller,
+        rating=5,
+        opinion="test",
+        auction=finished_auction,
+        )
