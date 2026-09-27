@@ -11,6 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from auction.models import Auction
 from auction.serializers.serializers import AuctionSerializer
+from users.mixins import UserQueryMixin
 from users.models import User
 from users.permissions.permissions_utils import IsWonAuctionsOwner
 from users.serializers.serializers import LoginSerializer, UserRegisterSerializer, UserSerializer
@@ -99,19 +100,9 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
-class WonAuctionsView(viewsets.ReadOnlyModelViewSet):
+class WonAuctionsView(UserQueryMixin, viewsets.ReadOnlyModelViewSet):
+    user_field = "winner"
+
     queryset = Auction.objects.all()
-    permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
     serializer_class = AuctionSerializer
-
-    def get_queryset(self) -> QuerySet[Auction]:
-        queryset = Auction.objects.filter(winner=self.request.user)
-        search = self.request.query_params.get('search')
-        if search:
-            queryset = queryset.filter(
-                listing__name__icontains=search
-            )
-
-        return queryset
 

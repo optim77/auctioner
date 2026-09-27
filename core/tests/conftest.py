@@ -26,7 +26,7 @@ def test_user_2(db):
 
 @pytest.fixture
 def seller(db):
-    return User.objects.create_user(email='seller@test.com', username='seller', password='password')
+    return User.objects.create_user(email='seller@test.com', username='seller', password='password', sum_user_rating=True)
 
 @pytest.fixture
 def bidder(db):

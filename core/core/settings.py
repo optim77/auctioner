@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from celery.schedules import crontab
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -179,6 +180,11 @@ CELERY_BEAT_SCHEDULE = {
         "task": "auction.tasks.process_sold_auctions",
         "schedule": 60.0,
     },
+    "process-user-ratings": {
+        "task": "rating.tasks.sum_user_rating",
+        # daily at midnight
+        "schedule": crontab(hour=0, minute=0),
+    }
 }
 
 

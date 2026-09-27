@@ -14,6 +14,7 @@ class AuctionViewSet(viewsets.ModelViewSet):
     serializer_class = AuctionSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsOwnerOfAuction]
+    lookup_field = 'id'
 
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None) -> Response:

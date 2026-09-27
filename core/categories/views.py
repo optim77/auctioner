@@ -11,4 +11,5 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAdminOrReadOnly]
+    lookup_field = 'id'
 
