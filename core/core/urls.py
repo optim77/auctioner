@@ -14,7 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from auction.views import AuctionViewSet
+from auction.views import AuctionViewSet, NewestAuctionViewSet
 from bid.views import BidViewSet
 from categories.views import CategoryViewSet
 from django.urls import include, path
@@ -33,10 +33,11 @@ router.register(r'watchlist', WatchlistViewSet, basename='watchlist')
 router.register(r"rating", RatingViewSet, basename='rating')
 
 urlpatterns = [
+    path('newest_auctions/', NewestAuctionViewSet.as_view(), name="newest_auctions"),
     path(
         'auctions/<uuid:auction_id>/bids/',
         BidViewSet.as_view({"post": "create"}),
-        name='bid',
+        name="bid",
     ),
     path(
         'rating/<uuid:user_id>/',
@@ -59,10 +60,10 @@ urlpatterns = [
     path('profile/', ProfileViewSet.as_view()),
     path("profile/won_auctions/", WonAuctionsView.as_view({"get": "list"})),
     path('users/', UserViewSet.as_view({
-        'get': 'list',
+        "get": "list",
     })),
     path('users/<uuid:id>/', UserViewSet.as_view({
-        'get': 'retrieve',
+        "get": "retrieve",
     })),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]

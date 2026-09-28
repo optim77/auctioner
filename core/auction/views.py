@@ -1,4 +1,5 @@
-from rest_framework import status, viewsets
+from django.db.models import QuerySet
+from rest_framework import status, viewsets, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -15,6 +16,14 @@ class AuctionViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsOwnerOfAuction]
     lookup_field = 'id'
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        search = self.request.query_params.get("q")
+        if search:
+            qs = qs.search(search)
+        return qs
+
 
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None) -> Response:
@@ -36,3 +45,26 @@ class AuctionViewSet(viewsets.ModelViewSet):
         return Response(
             AuctionSerializer(auction), status=status.HTTP_200_OK
         )
+
+class NewestAuctionViewSet(generics.ListAPIView):
+    queryset = Auction.objects.all()
+    serializer_class = AuctionSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.newest_auction()
+
+class NewestInCategoryViewSet(generics.ListAPIView):
+    queryset = Auction.objects.all()
+    serializer_class = AuctionSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset();
+        return qs.newest_auction_in_category()
+
+class HotAuctionViewSet(generics.ListAPIView):
+    queryset = Auction.objects.all()
+    class_serializer_class = AuctionSerializer
+
+    # TODO: Implement celery task
+

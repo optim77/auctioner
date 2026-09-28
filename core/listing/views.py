@@ -3,6 +3,8 @@ from django.db import transaction
 from django.db.models import F
 from rest_framework import viewsets
 from rest_framework_simplejwt.authentication import JWTAuthentication
+
+from users.mixins import UserQueryMixin
 from users.permissions.permissions_utils import IsOwnerOfListing
 
 from listing.models import Listing
@@ -19,14 +21,14 @@ class ListingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer) -> Listing:
         category = serializer.validated_data['category']
         Category.objects.filter(id=category.id).update(items_amount=F('items_amount') + 1)
-        listing = serializer.save()
+        listing = serializer.save(seller=self.request.user)
         return listing
 
     @transaction.atomic
     def perform_update(self, serializer) -> Listing:
         listing = serializer.instance
         old_category = listing.category
-        saved_listing = serializer.save()
+        saved_listing = serializer.save(seller=self.request.user)
         new_category = listing.category
         if old_category != new_category:
             Category.objects.filter(pk=old_category.pk).update(
@@ -44,4 +46,3 @@ class ListingViewSet(viewsets.ModelViewSet):
             items_amount=F('items_amount') - 1
         )
         instance.delete()
-

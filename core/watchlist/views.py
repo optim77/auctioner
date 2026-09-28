@@ -20,7 +20,7 @@ class WatchlistViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_update(self, serializer) -> None:
-        serializer.save()
+        serializer.save(user=self.request.user)
 
     @transaction.atomic
     def perform_create(self, serializer: WatchlistSerializer) -> None:

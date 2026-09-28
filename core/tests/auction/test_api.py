@@ -364,3 +364,14 @@ def test_active_auction_is_not_expired_before_end_date(
     auction.refresh_from_db()
 
     assert auction.status == AuctionStatus.ACTIVE
+
+
+@pytest.mark.django_db
+def test_fetch_newest_auction(api_client, auction, auction_ending_soon):
+    response = api_client.get(
+        '/newest_auctions/',
+        format="json",
+    )
+
+    assert response.data['count'] == 2
+    assert response.status_code == 200

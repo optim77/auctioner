@@ -2,6 +2,8 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser, PermissionsMixin
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.db.models import Q
+
 from utils.base_model import BaseModel
 
 
@@ -28,10 +30,11 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
 
-        if extra_fields.get('is_staff'):
-            raise ValueError("Superuser musi mieć is_staff=True")
-        if extra_fields.get('is_superuser'):
-            raise ValueError("Superuser musi mieć is_superuser=True")
+        if extra_fields.get("is_staff"):
+            raise ValueError("Superuser need to be set as is_staff=True")
+
+        if extra_fields.get("is_superuser"):
+            raise ValueError("Superuser need to be set as is_superuser=True")
 
         return self.create_user(email, password, **extra_fields)
 
@@ -62,6 +65,12 @@ class User(AbstractUser, PermissionsMixin, BaseModel):
 
     def __str__(self):
         return self.email
+
+    def search(self, query, user=None):
+        lookup = Q(username__icontains=query) | Q(email__icontains=query)
+        qs = self.filter(lookup)
+        return qs
+
 
     class Meta:
         ordering = ('-created_at',)
