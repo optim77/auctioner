@@ -375,3 +375,12 @@ def test_fetch_newest_auction(api_client, auction, auction_ending_soon):
 
     assert response.data['count'] == 2
     assert response.status_code == 200
+
+def test_newest_in_category(api_client, listing, category):
+    response = api_client.get(
+        f'/newest_category_auctions/{category.name}/',
+        format="json",
+    )
+
+    print(response.data)
+    assert response.status_code == 200

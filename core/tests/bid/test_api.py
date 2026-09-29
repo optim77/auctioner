@@ -126,7 +126,7 @@ def test_seller_cannot_place_bid(
 
     assert response.status_code == 400
 
-from auction.models import AuctionStatus
+from auction.models import AuctionStatus, Auction
 
 
 @pytest.mark.django_db
@@ -166,3 +166,24 @@ def test_bid_price_is_required(
 
     assert response.status_code == 400
     assert "bid_price" in response.data
+
+@pytest.mark.django_db
+def test_bids_counter_increment_after_bid(
+    api_client,
+    auction,
+    bidder
+):
+
+    api_client.force_authenticate(user=bidder)
+
+    response = api_client.post(
+        f"/auctions/{auction.id}/bids/",
+        {
+            "bid_price": "150.00",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 201
+    auction_db = Auction.objects.get(id=auction.id)
+    assert auction_db.bids_counter == 1

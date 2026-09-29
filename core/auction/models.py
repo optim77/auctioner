@@ -23,6 +23,9 @@ class AuctionQuerySet(models.QuerySet):
         lookup = Q(listing__category__name__icontains=category)
         return self.filter(lookup).is_active().order_by("-created_at")[:10]
 
+    def most_bids(self) -> Self:
+        return self.is_active().order_by("-bids_counter")[:10]
+
 class AuctionManager(
     models.Manager.from_queryset(AuctionQuerySet)
 ):
@@ -50,6 +53,7 @@ class Auction(models.Model):
     winner = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    bids_counter = models.PositiveIntegerField(default=0)
 
     status = models.CharField(choices=AuctionStatus.choices, default=AuctionStatus.DRAFT, max_length=10)
 

@@ -14,7 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from auction.views import AuctionViewSet, NewestAuctionViewSet
+from auction.views import AuctionViewSet, NewestAuctionViewSet, NewestInCategoryViewSet, HotAuctionViewSet
 from bid.views import BidViewSet
 from categories.views import CategoryViewSet
 from django.urls import include, path
@@ -34,6 +34,8 @@ router.register(r"rating", RatingViewSet, basename='rating')
 
 urlpatterns = [
     path('newest_auctions/', NewestAuctionViewSet.as_view(), name="newest_auctions"),
+    path("newest_category_auctions/<str:category>/", NewestInCategoryViewSet.as_view(), name="newest_category_auctions"),
+    path("hot_auctions/", HotAuctionViewSet.as_view(), name="hot_auctions"),
     path(
         'auctions/<uuid:auction_id>/bids/',
         BidViewSet.as_view({"post": "create"}),

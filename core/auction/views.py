@@ -1,4 +1,5 @@
 from django.db.models import QuerySet
+from django.views.decorators.cache import cache_page
 from rest_framework import status, viewsets, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -54,17 +55,25 @@ class NewestAuctionViewSet(generics.ListAPIView):
         qs = super().get_queryset()
         return qs.newest_auction()
 
+
 class NewestInCategoryViewSet(generics.ListAPIView):
     queryset = Auction.objects.all()
     serializer_class = AuctionSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset();
-        return qs.newest_auction_in_category()
+        category = self.request.query_params.get("category")
+        qs = Auction.objects.none()
+        if category:
+            qs = super().get_queryset();
+            return qs.newest_auction_in_category()
+        return qs
+
 
 class HotAuctionViewSet(generics.ListAPIView):
     queryset = Auction.objects.all()
     class_serializer_class = AuctionSerializer
 
-    # TODO: Implement celery task
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.most_bids()
 

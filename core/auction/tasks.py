@@ -169,5 +169,3 @@ def process_sold_auctions() -> None:
         )
 
     group(jobs).delay()
-
-

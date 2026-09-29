@@ -15,13 +15,13 @@ class BidViewSet(viewsets.GenericViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def create(self, auction_id: UUID | None = None) -> Response:
+    def create(self, request, auction_id: UUID | None = None) -> Response:
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if auction_id and request.user:
             bid = BidService.place_bid(
                 auction_id=auction_id,
-                bidder=self.request.user,
+                bidder=request.user,
                 bid_price=serializer.validated_data["bid_price"],
             )
 

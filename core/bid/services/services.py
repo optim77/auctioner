@@ -66,7 +66,8 @@ class BidService:
         )
 
         auction.current_price = bid_price
-        auction.save(update_fields=["current_price"])
+        auction.bids_counter += 1
+        auction.save(update_fields=["current_price", "bids_counter"])
 
         bid_placed_event = BidPlacedEvent(
             auction_id=auction.id,
