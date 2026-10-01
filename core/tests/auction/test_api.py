@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import pytest
 from auction.models import Auction, AuctionStatus
-from auction.services.services import AuctionServices
+from auction.services import AuctionServices
 from django.utils import timezone
 
 
@@ -383,4 +383,14 @@ def test_newest_in_category(api_client, listing, category):
     )
 
     print(response.data)
+    assert response.status_code == 200
+
+def test_hot_auction(api_client, listing, auction, auction_ending_soon):
+    response = api_client.get(
+        '/hot_auctions/',
+        format="json",
+    )
+
+    print(response.data)
+    assert response.data['count'] == 2
     assert response.status_code == 200

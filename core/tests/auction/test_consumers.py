@@ -1,7 +1,7 @@
 import pytest
 from asgiref.sync import sync_to_async
 from auction.models import Auction
-from auction.services.services import AuctionServices
+from auction.services import AuctionServices
 from auction.tasks import check_auctions_ending_soon
 from bid.services.services import BidService
 from channels.testing import WebsocketCommunicator

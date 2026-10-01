@@ -12,20 +12,6 @@ class AuctionQuerySet(models.QuerySet):
     def is_active(self) -> Self:
         return self.filter(status=AuctionStatus.ACTIVE)
 
-    def search(self, query: str) -> Self:
-        lookup = Q(listing__name__icontains=query) | Q(listing__description__icontains=query)
-        return self.filter(lookup).is_active()
-
-    def newest_auction(self) -> Self:
-        return self.is_active().order_by("-created_at")[:10]
-
-    def newest_auction_in_category(self, category: str) -> Self:
-        lookup = Q(listing__category__name__icontains=category)
-        return self.filter(lookup).is_active().order_by("-created_at")[:10]
-
-    def most_bids(self) -> Self:
-        return self.is_active().order_by("-bids_counter")[:10]
-
 class AuctionManager(
     models.Manager.from_queryset(AuctionQuerySet)
 ):

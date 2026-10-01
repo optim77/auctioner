@@ -82,6 +82,7 @@ def auction(listing):
         end_date=timezone.now() + timedelta(hours=1),
         currency="PLN",
         status=AuctionStatus.ACTIVE,
+        bids_counter=3
     )
 
 @pytest.fixture
@@ -106,6 +107,7 @@ def auction_ending_soon(second_listing):
         end_date=timezone.now() + timedelta(minutes=1),
         currency="PLN",
         status=AuctionStatus.ACTIVE,
+        bids_counter=1
     )
 
 @pytest.fixture

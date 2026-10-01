@@ -90,7 +90,6 @@ class AuctionServices:
                     else None
                 ),
             )
-            # handle_auction_ended
             transaction.on_commit(
                 lambda event=close_event: EventPublisher.publish(event)
             )

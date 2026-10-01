@@ -10,10 +10,9 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from auction.models import Auction
-from auction.serializers.serializers import AuctionSerializer
+from auction.serializers import AuctionSerializer
 from users.mixins import UserQueryMixin
 from users.models import User
-from users.permissions.permissions_utils import IsWonAuctionsOwner
 from users.serializers.serializers import LoginSerializer, UserRegisterSerializer, UserSerializer
 
 

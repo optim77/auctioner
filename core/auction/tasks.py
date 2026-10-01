@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-from bid.models import Bid
 from celery import chain, group, shared_task
 from django.db import OperationalError, transaction
 from django.utils import timezone
@@ -10,7 +9,7 @@ from mail_service.sender import MailData, send_payment_mail
 from utils.redis_client import redis_client
 
 from auction.models import Auction, AuctionStatus
-from auction.services.services import AuctionServices
+from auction.services import AuctionServices
 
 
 @shared_task(
@@ -32,26 +31,7 @@ def expire_auctions_task() -> None:
     retry_jitter=True,
 )
 def do_log_analytics() -> None:
-    auctions = Auction.objects.all()
-
-    active = auctions.filter(
-        status=AuctionStatus.ACTIVE
-    ).count()
-
-    sold = auctions.filter(
-        status=AuctionStatus.SOLD
-    ).count()
-
-    expired = auctions.filter(
-        status=AuctionStatus.EXPIRED
-    ).count()
-
-    total_bids = Bid.objects.count()
-
-    print(f"active auctions: {active}")
-    print(f"sold auctions: {sold}")
-    print(f"expired auctions: {expired}")
-    print(f"total bids: {total_bids}")
+    pass
 
 @shared_task(
     autoretry_for=(OperationalError,),

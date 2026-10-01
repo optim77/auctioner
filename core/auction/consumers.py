@@ -13,7 +13,8 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self) -> None:
         self.auction_id = self.scope["url_route"]["kwargs"]["auction_id"]
         self.group_name = f"auction_{self.auction_id}"
-
+        if self.group_name is None:
+            raise ValueError
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name,
