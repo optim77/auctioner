@@ -1,15 +1,14 @@
+from bid.models import Bid
 from django.db import transaction
 from django.utils import timezone
-
-from bid.models import Bid
-from events.kafka.events import KafkaAuctionStartedEvent, KafkaAuctionEndedEvent
+from events.kafka.events import KafkaAuctionEndedEvent, KafkaAuctionStartedEvent
 from events.kafka.publisher import KafkaPublisher
 from events.ws.events import AuctionEndedEvent, AuctionStartedEvent
 from events.ws.publisher import EventPublisher
 from rest_framework.exceptions import ValidationError
+from watchlist.models import Watchlist
 
 from auction.models import Auction, AuctionStatus
-from watchlist.models import Watchlist
 
 
 class AuctionServices:

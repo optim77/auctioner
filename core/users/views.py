@@ -1,7 +1,9 @@
+from auction.models import Auction
+from auction.serializers import AuctionSerializer
 from django.contrib.auth import logout
 from django.db import transaction
 from django.db.models import QuerySet
-from rest_framework import viewsets, generics, status, serializers
+from rest_framework import generics, serializers, status, viewsets
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -9,11 +11,13 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from auction.models import Auction
-from auction.serializers import AuctionSerializer
 from users.mixins import UserQueryMixin
 from users.models import User
-from users.serializers.serializers import LoginSerializer, UserRegisterSerializer, UserSerializer
+from users.serializers.serializers import (
+    LoginSerializer,
+    UserRegisterSerializer,
+    UserSerializer,
+)
 
 
 class RegisterView(CreateAPIView):

@@ -4,6 +4,7 @@ from django.db.models import ForeignKey, Q
 from users.models import User
 from utils.base_model import BaseModel
 
+
 class ListingQuerySet(models.QuerySet):
 
     def search(self, query):

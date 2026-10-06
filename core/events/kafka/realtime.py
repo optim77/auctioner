@@ -1,12 +1,13 @@
-from wsgiref import headers
 
 from core.kafka import producer
+
 from events.kafka.events import (
     KafkaAuctionEndedEvent,
     KafkaAuctionStartedEvent,
+    KafkaBidOutbidEvent,
     KafkaBidPlacedEvent,
-    KafkaBidOutbidEvent
 )
+
 
 def publish_auction_started(event: KafkaAuctionStartedEvent):
     producer.send(

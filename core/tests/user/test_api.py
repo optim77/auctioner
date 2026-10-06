@@ -1,5 +1,4 @@
 import pytest
-
 from auction.models import Auction
 from users.models import User
 

@@ -1,5 +1,4 @@
 import pytest
-
 from watchlist.models import Watchlist
 
 

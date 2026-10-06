@@ -1,11 +1,10 @@
+from auction.models import Auction
 from listing.models import Listing
 from rest_framework import permissions
 from rest_framework.permissions import SAFE_METHODS, BasePermission
-
-from rating.models import Rating
-from users.models import User
 from watchlist.models import Watchlist
-from auction.models import Auction
+
+from users.models import User
 
 
 class IsAdminOrReadOnly(BasePermission):

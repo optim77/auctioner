@@ -3,15 +3,14 @@ from uuid import UUID
 from auction.models import Auction, AuctionStatus
 from django.db import transaction
 from django.utils import timezone
-
-from events.ws.events import BidPlacedEvent
 from events.kafka.events import KafkaBidOutbidEvent
 from events.kafka.publisher import KafkaPublisher
+from events.ws.events import BidPlacedEvent
 from events.ws.publisher import EventPublisher
 from rest_framework.exceptions import ValidationError
+from users.models import User
 
 from bid.models import Bid
-from users.models import User
 
 
 class BidService:

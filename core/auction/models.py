@@ -1,12 +1,11 @@
 import uuid
 from typing import Self
 
-from django.db.models import Q, QuerySet
-
 from bid.utils.currencies import Currency
 from django.db import models
 from listing.models import Listing
 from users.models import User
+
 
 class AuctionQuerySet(models.QuerySet):
     def is_active(self) -> Self:

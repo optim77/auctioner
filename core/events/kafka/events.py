@@ -1,8 +1,8 @@
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
+
 
 @dataclass(frozen=True)
 class BaseEvent(ABC):
@@ -21,7 +21,7 @@ class KafkaBidPlacedEvent(BaseEvent):
 class KafkaAuctionStartedEvent(BaseEvent):
     status: str
     start_price: str
-    listing_name: Optional[str] | None
+    listing_name: str | None
     listing_id: str
     receiver_id: str
 

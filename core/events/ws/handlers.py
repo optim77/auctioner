@@ -1,3 +1,9 @@
+from events.ws.events import (
+    AuctionEndedEvent,
+    AuctionEndingSoonEvent,
+    AuctionStartedEvent,
+    BidPlacedEvent,
+)
 from events.ws.realtime import (
     publish_auction_ended,
     publish_auction_ending_soon,
@@ -5,12 +11,6 @@ from events.ws.realtime import (
     publish_bid_placed,
 )
 
-from events.ws.events import (
-    AuctionEndedEvent,
-    AuctionEndingSoonEvent,
-    AuctionStartedEvent,
-    BidPlacedEvent,
-)
 
 def handle_bid_placed(event: BidPlacedEvent) -> None:
     publish_bid_placed(event)

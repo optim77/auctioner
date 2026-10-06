@@ -1,5 +1,4 @@
 import pytest
-
 from categories.models import Category
 from listing.models import Listing
 
@@ -39,7 +38,7 @@ def test_unauthorized_user_cant_create_listing(
         category
 ):
     response = api_client.post(
-        f"/listing/",
+        "/listing/",
         {
             "seller": seller.id,
             "name": "test",
@@ -158,7 +157,7 @@ def test_authorized_user_can_create_listing(
 ):
     api_client.force_authenticate(user=seller)
     response = api_client.post(
-        f"/listing/",
+        "/listing/",
         {
             "seller": seller.id,
             "name": "test2",
@@ -209,7 +208,7 @@ def test_category_items_counter_count_up_after_adding_listing(
 ):
     api_client.force_authenticate(user=seller)
     response = api_client.post(
-        f"/listing/",
+        "/listing/",
         {
             "seller": seller.id,
             "name": "test2",
@@ -229,7 +228,7 @@ def test_category_items_counter_count_down_after_adding_listing(
 ):
     api_client.force_authenticate(user=seller)
     response = api_client.post(
-        f"/listing/",
+        "/listing/",
         {
             "seller": seller.id,
             "name": "test2",

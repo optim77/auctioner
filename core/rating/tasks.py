@@ -1,8 +1,8 @@
 from celery import shared_task
 from django.db import OperationalError
+from users.models import User
 
 from rating.models import Rating
-from users.models import User
 
 
 @shared_task(

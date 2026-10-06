@@ -3,8 +3,6 @@ from django.db import transaction
 from django.db.models import F
 from rest_framework import viewsets
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
-from users.mixins import UserQueryMixin
 from users.permissions.permissions_utils import IsOwnerOfListing
 
 from listing.models import Listing

@@ -1,11 +1,10 @@
-from django.db import transaction
-from rest_framework import viewsets, serializers
-from rest_framework.exceptions import ValidationError
-
 from auction.models import Auction, AuctionStatus
+from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
+from users.permissions.permissions_utils import IsOwnerOfRating
+
 from rating.models import Rating
 from rating.serializers.serializers import RatingSerializer
-from users.permissions.permissions_utils import IsOwnerOfRating
 
 
 class RatingViewSet(viewsets.ModelViewSet):

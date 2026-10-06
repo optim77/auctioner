@@ -126,7 +126,7 @@ def test_seller_cannot_place_bid(
 
     assert response.status_code == 400
 
-from auction.models import AuctionStatus, Auction
+from auction.models import Auction, AuctionStatus
 
 
 @pytest.mark.django_db

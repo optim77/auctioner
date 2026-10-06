@@ -1,9 +1,12 @@
 import uuid
 
-from django.core.validators import MinValueValidator, MaxValueValidator, MaxLengthValidator
-from django.db import models
-
 from auction.models import Auction
+from django.core.validators import (
+    MaxLengthValidator,
+    MaxValueValidator,
+    MinValueValidator,
+)
+from django.db import models
 from listing.models import Listing
 from users.models import User
 

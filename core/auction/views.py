@@ -1,12 +1,16 @@
-from rest_framework import status, viewsets, generics
+from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
-from auction.selectors import newest_auction, newest_auction_in_category, search_auction, get_hot_auctions
 from users.permissions.permissions_utils import IsOwnerOfAuction
 
 from auction.models import Auction
+from auction.selectors import (
+    get_hot_auctions,
+    newest_auction,
+    newest_auction_in_category,
+    search_auction,
+)
 from auction.serializers import AuctionSerializer
 from auction.services import AuctionServices
 

@@ -1,16 +1,16 @@
-from events.kafka.realtime import (
-    publish_auction_ended,
-    publish_auction_started,
-    publish_bid_placed,
-    publish_bid_outbid,
-)
-
 from events.kafka.events import (
-    KafkaBidPlacedEvent,
     KafkaAuctionEndedEvent,
     KafkaAuctionStartedEvent,
     KafkaBidOutbidEvent,
+    KafkaBidPlacedEvent,
 )
+from events.kafka.realtime import (
+    publish_auction_ended,
+    publish_auction_started,
+    publish_bid_outbid,
+    publish_bid_placed,
+)
+
 
 def handle_bid_placed(event: KafkaBidPlacedEvent) -> None:
     publish_bid_placed(event)

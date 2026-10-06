@@ -2,7 +2,6 @@ from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
 from users.permissions.permissions_utils import IsOwnerOfWatchlist
 
 from watchlist.models import Watchlist

@@ -5,10 +5,9 @@ from auction.models import Auction, AuctionStatus
 from categories.models import Category
 from django.utils import timezone
 from listing.models import Listing
-from rest_framework.test import APIClient
-
 from rating.models import Rating
-from users.models import User, Role
+from rest_framework.test import APIClient
+from users.models import Role, User
 from watchlist.models import Watchlist
 
 

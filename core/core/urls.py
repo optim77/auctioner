@@ -14,14 +14,18 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from auction.views import AuctionViewSet, NewestAuctionViewSet, NewestInCategoryViewSet, HotAuctionViewSet
+from auction.views import (
+    AuctionViewSet,
+    HotAuctionViewSet,
+    NewestAuctionViewSet,
+    NewestInCategoryViewSet,
+)
 from bid.views import BidViewSet
 from categories.views import CategoryViewSet
 from django.urls import include, path
 from listing.views import ListingViewSet
-from rest_framework import routers
-
 from rating.views import RatingViewSet
+from rest_framework import routers
 from users.views import ProfileViewSet, UserViewSet, WonAuctionsView
 from watchlist.views import WatchlistViewSet
 

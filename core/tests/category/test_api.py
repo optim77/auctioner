@@ -1,5 +1,4 @@
 import pytest
-
 from categories.models import Category
 
 
@@ -202,7 +201,7 @@ def test_admin_user_can_update_category(
 
 
 @pytest.mark.django_db
-def test_admin_user_can_update_category(
+def test_admin_user_can_delete_category(
         api_client,
         admin,
         category

@@ -1,5 +1,4 @@
 import pytest
-
 from rating.tasks import sum_user_rating
 from users.models import User
 

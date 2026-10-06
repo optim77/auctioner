@@ -1,5 +1,4 @@
 import pytest
-
 from rating.models import Rating
 
 
