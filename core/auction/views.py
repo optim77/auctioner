@@ -23,29 +23,31 @@ class AuctionViewSet(viewsets.ModelViewSet):
     lookup_field = 'id'
 
     def get_queryset(self):
+        if self.action != "list":
+            return Auction.objects.all()
         search = self.request.query_params.get("q")
         return search_auction(search) if search else Auction.objects.is_active()
 
+    @action(detail=True, methods=["post"])
+    def activate(self, request, id=None) -> Response:
+        auction = self.get_object()
+        auction = AuctionServices.activate(auction.id)
+        return Response(AuctionSerializer(auction).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['post'])
-    def activate(self, pk=None) -> Response:
-        auction = AuctionServices.activate(pk)
+    def finish(self, request, id=None) -> Response:
+        auction = self.get_object()
+        auction = AuctionServices.finish(auction.id)
         return Response(
-            AuctionSerializer(auction), status=status.HTTP_200_OK
+            AuctionSerializer(auction).data, status=status.HTTP_200_OK
         )
 
     @action(detail=True, methods=['post'])
-    def finish(self, pk=None) -> Response:
-        auction = AuctionServices.finish(pk)
+    def expire(self, request, id=None) -> Response:
+        auction = self.get_object()
+        auction = AuctionServices.expire(auction.id)
         return Response(
-            AuctionSerializer(auction), status=status.HTTP_200_OK
-        )
-
-    @action(detail=True, methods=['post'])
-    def expire(self, pk=None) -> Response:
-        auction = AuctionServices.expire(pk)
-        return Response(
-            AuctionSerializer(auction), status=status.HTTP_200_OK
+            AuctionSerializer(auction).data, status=status.HTTP_200_OK
         )
 
 class NewestAuctionViewSet(generics.ListAPIView):

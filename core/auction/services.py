@@ -1,3 +1,6 @@
+from uuid import UUID
+
+from auction.rules import ensure_transition, InvalidAuctionTransition
 from bid.models import Bid
 from django.db import transaction
 from django.utils import timezone
@@ -15,19 +18,14 @@ class AuctionServices:
 
     @staticmethod
     @transaction.atomic
-    def activate(auction_id) -> Auction:
-        auction = (Auction.objects.select_for_update().get(id=auction_id))
-        if auction.status == AuctionStatus.ACTIVE:
-            raise ValidationError('Auction is already active')
-        if auction.status == AuctionStatus.SOLD:
-            raise ValidationError('Cannot activate sold auction')
-        if auction.status == AuctionStatus.EXPIRED:
-            raise ValidationError('Cannot activate expired auction')
+    def activate(auction_id: UUID) -> Auction:
+        auction = Auction.objects.select_for_update().get(id=auction_id)
+        ensure_transition(auction.status, AuctionStatus.ACTIVE)
         auction.status = AuctionStatus.ACTIVE
+        auction.save(update_fields=["status", "current_price"])
         if auction.current_price is None:
             auction.current_price = auction.start_price
 
-        auction.status = AuctionStatus.ACTIVE
         auction.save(update_fields=["status", "current_price"])
         ws_event = AuctionStartedEvent(
             auction_id=auction_id,
@@ -43,55 +41,39 @@ class AuctionServices:
     @transaction.atomic
     def finish(auction_id) -> Auction:
         auction = (Auction.objects.select_for_update().get(id=auction_id))
-        if auction.status == AuctionStatus.DRAFT:
-            raise ValidationError('Cannot sell draft auction')
-        if auction.status == AuctionStatus.EXPIRED:
-            raise ValidationError('Cannot finish expired auction')
-        if auction.status == AuctionStatus.SOLD:
-            raise ValidationError('Auction is already sold')
+        highest_bid = (Bid.objects.filter(auction=auction).order_by("-bid_price", "created_at").first())
+        ensure_transition(auction.status, AuctionStatus.SOLD)
         auction.status = AuctionStatus.SOLD
-        auction.save(update_fields=['status'])
+        auction.winner = auction.highest_bid.bidder
+        auction.final_price = highest_bid.bid_price
+        auction.save(update_fields=['status', 'winner', 'final_price'])
         return auction
 
     @staticmethod
     @transaction.atomic
     def expire(auction_id) -> Auction:
         auction = (Auction.objects.select_for_update().get(id=auction_id))
-        if auction.status == AuctionStatus.SOLD:
-            raise ValidationError('Cannot expire sold auction')
-        if auction.status == AuctionStatus.EXPIRED:
-            raise ValidationError('Auction is already expired')
-        if auction.status == AuctionStatus.DRAFT:
-            raise ValidationError('Cannot expire draft auction')
+        ensure_transition(auction.status, AuctionStatus.EXPIRED)
         auction.status = AuctionStatus.EXPIRED
-        auction.save(update_fields=['status'])
+        auction.final_price = auction.start_price
+        auction.save(update_fields=['status', 'final_price'])
         return auction
-    #TODO: These two methods need refactor but for now its good for testing duplication events
 
 
     @staticmethod
-    @transaction.atomic
-    def close_expired_auctions() -> None:
-        auctions = Auction.objects.filter(
-            status=AuctionStatus.ACTIVE,
-            end_date__lte=timezone.now(),
+    def close_expired_auctions() -> int:
+        ids = list(
+            Auction.objects.filter(status=AuctionStatus.ACTIVE, end_date__lte=timezone.now())
+            .values_list("id", flat=True)
         )
-
-        for auction in auctions:
-            closed_auction = AuctionServices.close_auction(auction.id)
-
-            close_event = AuctionEndedEvent(
-                auction_id=closed_auction.id,
-                status=closed_auction.status,
-                final_price=(
-                    str(closed_auction.final_price)
-                    if closed_auction.final_price is not None
-                    else None
-                ),
-            )
-            transaction.on_commit(
-                lambda event=close_event: EventPublisher.publish(event)
-            )
+        closed = 0
+        for auction_id in ids:
+            try:
+                AuctionServices.close_auction(auction_id=auction_id)
+                closed += 1
+            except InvalidAuctionTransition:
+                continue
+        return closed
 
 
     @staticmethod
@@ -102,8 +84,6 @@ class AuctionServices:
             .select_for_update()
             .get(id=auction_id)
         )
-        if auction.status != AuctionStatus.ACTIVE:
-            raise ValidationError("Auction is already inactive")
         winning_bid = (
             auction.bids
             .order_by("-bid_price", "created_at")
@@ -111,19 +91,22 @@ class AuctionServices:
         )
 
         if winning_bid is None:
+            ensure_transition(auction.status, AuctionStatus.EXPIRED)
             auction.status = AuctionStatus.EXPIRED
         else:
+            ensure_transition(auction.status, AuctionStatus.SOLD)
             auction.status = AuctionStatus.SOLD
             auction.final_price = winning_bid.bid_price
             auction.winner = winning_bid.bidder
+            auction.sold_date = timezone.now()
 
         auction.save(
-            update_fields=["status", "final_price"]
+            update_fields=["status", "final_price", "winner", "sold_date"]
         )
         ended_event = AuctionEndedEvent(
             auction_id=auction.id,
             status=auction.status,
-            final_price=str(auction.final_price),
+            final_price=str(auction.final_price) if auction.final_price is not None else None,
         )
         transaction.on_commit(lambda event=ended_event: EventPublisher.publish(event))
         transaction.on_commit(lambda: AuctionServices.notify_bidders(auction))
@@ -133,7 +116,7 @@ class AuctionServices:
     def notify_watchers(auction: Auction) -> None:
         watchers = Watchlist.objects.filter(auction=auction.id)
         for watcher in watchers:
-            if watcher.user.status == AuctionStatus.ACTIVE:
+            if watcher.auction.status == AuctionStatus.ACTIVE:
                 kafka_event = KafkaAuctionStartedEvent(
                     auction_id=auction.id,
                     status=auction.status,
@@ -147,14 +130,14 @@ class AuctionServices:
 
     @staticmethod
     def notify_bidders(auction: Auction) -> None:
-        bidders = Bid.objects.filter(auction_id=auction.id).order_by("-bid_price")
-        for bidder in bidders:
+        user_ids = Bid.objects.filter(auction_id=auction.id).values_list("bidder_id", flat=True).distinct()
+        for user_id in user_ids:
             event = KafkaAuctionEndedEvent(
                 auction_id=auction.id,
                 status=auction.status,
                 final_price=auction.final_price,
                 listing_name=auction.listing.name,
                 listing_id=auction.listing.id,
-                receiver_id=bidder.id
+                receiver_id=user_id
             )
             KafkaPublisher.publish(event)

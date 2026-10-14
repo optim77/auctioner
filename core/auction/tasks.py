@@ -90,11 +90,7 @@ def send_payment_notification_mail(mail_data) -> None:
     if not was_added:
         return mail_data["auction_id"]
     send_payment_mail(mail_data)
-    redis_client.set(
-        idempotency_key,
-        "sent",
-        ex=86400,
-    )
+    return mail_data["auction_id"]
 
 
 @shared_task
