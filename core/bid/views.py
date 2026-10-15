@@ -6,8 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from bid.serializers.serializers import BidSerializer
-from bid.services.services import BidService
+from bid.serializers import BidSerializer
+from bid.services import BidService
 
 
 class BidViewSet(viewsets.GenericViewSet):

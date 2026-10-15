@@ -1,8 +1,11 @@
 from uuid import UUID
 
-from auction.models import Auction, AuctionStatus
+from auction.models import Auction
 from django.db import transaction
 from django.utils import timezone
+
+from auction.rules import ensure_active
+from bid.selectors import get_highest_bid
 from events.kafka.events import KafkaBidOutbidEvent
 from events.kafka.publisher import KafkaPublisher
 from events.ws.events import BidPlacedEvent
@@ -18,51 +21,23 @@ class BidService:
     @staticmethod
     @transaction.atomic
     def place_bid(*, auction_id: UUID, bidder: User, bid_price: int) -> Bid:
-        auction: Auction = (
-            Auction.objects
-            .select_for_update()
-            .get(id=auction_id)
-        )
-
-        if auction.status != AuctionStatus.ACTIVE:
-            raise ValidationError(
-                "Auction is not active."
-            )
+        auction: Auction = Auction.objects.select_for_update().get(id=auction_id)
+        ensure_active(auction.status)
 
         if auction.end_date <= timezone.now():
-            raise ValidationError(
-                "Auction has expired."
-            )
-
+            raise ValidationError("Auction has expired.")
         if auction.listing.seller_id == bidder.id:
-            raise ValidationError(
-                "Seller cannot bid on their own auction."
-            )
+            raise ValidationError("Seller cannot bid on their own auction.")
 
-        highest_bid = (
-            Bid.objects
-            .filter(auction=auction)
-            .order_by("-bid_price")
-            .first()
-        )
-
-        minimum_bid: int = (
-            highest_bid.bid_price
-            if highest_bid
-            else auction.start_price
-        )
+        highest_bid = get_highest_bid(auction)
+        minimum_bid: int = highest_bid.bid_price if highest_bid else auction.start_price
 
         if bid_price <= minimum_bid:
-            raise ValidationError(
-                f"Bid must be greater than "
-                f"{minimum_bid} {auction.currency}."
-            )
+            raise ValidationError(f"Bid must be greater than {minimum_bid} {auction.currency}.")
+        if not bidder.is_active:
+            raise ValidationError("Bidder is not active.")
 
-        bid = Bid.objects.create(
-            auction=auction,
-            bidder=bidder,
-            bid_price=bid_price,
-        )
+        bid = Bid.objects.create(auction=auction, bidder=bidder, bid_price=bid_price)
 
         auction.current_price = bid_price
         auction.bids_counter += 1
@@ -75,13 +50,10 @@ class BidService:
             bid_price=str(bid.bid_price),
             current_price=str(auction.current_price),
         )
-        print(bid_placed_event)
 
-        transaction.on_commit(
-            lambda: EventPublisher.publish(bid_placed_event)
-        )
+        transaction.on_commit(lambda: EventPublisher.publish(bid_placed_event))
 
-        if highest_bid:
+        if highest_bid and highest_bid.bidder_id != bidder.id:
             outbid_event = KafkaBidOutbidEvent(
                 auction_id=auction.id,
                 bid_price=str(bid.bid_price),

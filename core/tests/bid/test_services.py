@@ -4,7 +4,7 @@ from datetime import timedelta
 import pytest
 from auction.models import AuctionStatus
 from bid.models import Bid
-from bid.services.services import BidService
+from bid.services import BidService
 from django.db import close_old_connections
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError

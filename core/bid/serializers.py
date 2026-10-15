@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from bid.models import Bid
@@ -15,3 +17,4 @@ class BidSerializer(serializers.ModelSerializer):
             "id",
             "created_at",
         ]
+        extra_kwargs = {"bid_price": {"min_value": Decimal("0.01")}}

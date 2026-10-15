@@ -15,3 +15,7 @@ ALLOWED = {
 def ensure_transition(current: str, target: str):
     if target not in ALLOWED[current]:
         raise InvalidAuctionTransition(f"{current} -> {target}")
+
+def ensure_active(status: str) -> None:
+    if status != S.ACTIVE:
+        raise InvalidAuctionTransition(f"Auction is not active ({status})")

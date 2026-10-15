@@ -1,5 +1,5 @@
 import pytest
-from bid.services.services import BidService
+from bid.services import BidService
 
 
 @pytest.mark.django_db
