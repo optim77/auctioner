@@ -6,7 +6,6 @@ from utils.base_model import BaseModel
 
 
 class ListingQuerySet(models.QuerySet):
-
     def search(self, query):
         lookup = (Q(name__icontains=query) | Q(description__icontains=query) | Q(category__icontains=query))
         qs = self.filter(lookup)

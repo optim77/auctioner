@@ -1,12 +1,12 @@
-from categories.models import Category
 from django.db import transaction
-from django.db.models import F
 from rest_framework import viewsets
 from rest_framework_simplejwt.authentication import JWTAuthentication
+
+from categories.services import increment_category_items_count, decrement_category_items_count
 from users.permissions.permissions_utils import IsOwnerOfListing
 
 from listing.models import Listing
-from listing.serializers.serializers import ListingSerializer
+from listing.serializers import ListingSerializer
 
 
 class ListingViewSet(viewsets.ModelViewSet):
@@ -18,7 +18,7 @@ class ListingViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def perform_create(self, serializer) -> Listing:
         category = serializer.validated_data['category']
-        Category.objects.filter(id=category.id).update(items_amount=F('items_amount') + 1)
+        increment_category_items_count(category.id)
         listing = serializer.save(seller=self.request.user)
         return listing
 
@@ -29,18 +29,12 @@ class ListingViewSet(viewsets.ModelViewSet):
         saved_listing = serializer.save(seller=self.request.user)
         new_category = listing.category
         if old_category != new_category:
-            Category.objects.filter(pk=old_category.pk).update(
-                items_amount=F('items_amount') - 1
-            )
-            Category.objects.filter(pk=new_category.pk).update(
-                items_amount=F('items_amount') + 1
-            )
+            decrement_category_items_count(old_category.id)
+            increment_category_items_count(new_category.id)
         return saved_listing
 
     @transaction.atomic
     def perform_destroy(self, instance) -> None:
         category = instance.category
-        Category.objects.filter(id=category.id).update(
-            items_amount=F('items_amount') - 1
-        )
+        decrement_category_items_count(category.id)
         instance.delete()
