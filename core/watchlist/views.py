@@ -1,26 +1,27 @@
-from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from users.permissions.permissions_utils import IsOwnerOfWatchlist
 
+from users.permissions.permissions_utils import IsOwnerOfWatchlist
 from watchlist.models import Watchlist
-from watchlist.serializers.serializers import WatchlistSerializer
+from watchlist.selectors import get_user_watchlist
+from watchlist.serializers import WatchlistSerializer
+from watchlist.services import WatchlistServices
 
 
 class WatchlistViewSet(viewsets.ModelViewSet):
+    """CRUD interface for the requesting user's watchlist."""
+
     queryset = Watchlist.objects.all()
     serializer_class = WatchlistSerializer
-    permission_classes = (IsOwnerOfWatchlist, IsAuthenticated)
     authentication_classes = (JWTAuthentication,)
+    permission_classes = (IsOwnerOfWatchlist, IsAuthenticated)
 
     def get_queryset(self):
-        return Watchlist.objects.filter(user=self.request.user)
+        return get_user_watchlist(self.request.user)
 
-    @transaction.atomic
+    def perform_create(self, serializer) -> None:
+        WatchlistServices.create_entry(serializer, self.request.user)
+
     def perform_update(self, serializer) -> None:
-        serializer.save(user=self.request.user)
-
-    @transaction.atomic
-    def perform_create(self, serializer: WatchlistSerializer) -> None:
-        serializer.save(user=self.request.user)
+        WatchlistServices.update_entry(serializer, self.request.user)

@@ -6,6 +6,5 @@ from watchlist.models import Watchlist
 class WatchlistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Watchlist
-        fields = '__all__'
-        ordering = ('-created_at',)
-        read_only_fields = ('id',)
+        fields = ('id', 'user', 'listing', 'auction', 'notifications_enabled', 'created_at')
+        read_only_fields = ('id', 'user', 'created_at')

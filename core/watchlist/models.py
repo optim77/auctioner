@@ -14,6 +14,9 @@ class Watchlist(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     notifications_enabled = models.BooleanField(default=True)
 
+    def __str__(self) -> str:
+        target = self.listing or self.auction
+        return f'{self.user}: {target}'
 
     class Meta:
         ordering = ('-created_at',)
