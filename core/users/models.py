@@ -1,8 +1,9 @@
 from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth.models import AbstractUser, PermissionsMixin
+from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
+
 from utils.base_model import BaseModel
 
 
@@ -11,12 +12,20 @@ class Role(models.TextChoices):
     MOD = 'mod', 'Moderator'
     USER = 'user', 'User'
 
-class UserManager(BaseUserManager):
+
+class UserQuerySet(models.QuerySet):
+    def search(self, query: str):
+        """Return users matching the query by username or email (case-insensitive)."""
+        lookup = Q(username__icontains=query) | Q(email__icontains=query)
+        return self.filter(lookup)
+
+
+class UserManager(BaseUserManager.from_queryset(UserQuerySet)):
     def create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError('Users must have an email address')
         if not password:
-            raise ValueError('Users must have an email address')
+            raise ValueError('Users must have a password')
 
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
@@ -29,20 +38,16 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
 
-        if extra_fields.get("is_staff"):
+        if not extra_fields.get("is_staff"):
             raise ValueError("Superuser need to be set as is_staff=True")
 
-        if extra_fields.get("is_superuser"):
+        if not extra_fields.get("is_superuser"):
             raise ValueError("Superuser need to be set as is_superuser=True")
 
         return self.create_user(email, password, **extra_fields)
 
-class User(AbstractUser, PermissionsMixin, BaseModel):
-    class Role(models.TextChoices):
-        ADMIN = 'admin', 'Admin'
-        MOD = 'mod', 'Moderator'
-        USER = 'user', 'User'
 
+class User(AbstractUser, BaseModel):
     username = models.CharField(max_length=100, unique=True, blank=True, null=True)
     email = models.EmailField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -55,21 +60,14 @@ class User(AbstractUser, PermissionsMixin, BaseModel):
     rating = models.IntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(5)])
     sum_user_rating = models.BooleanField(default=False)
 
-
     def is_admin(self) -> bool:
-        return self.role == User.Role.ADMIN
+        return self.role == Role.ADMIN
 
     def is_moderator(self) -> bool:
-        return self.role == User.Role.MOD
+        return self.role == Role.MOD
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.email
-
-    def search(self, query, user=None):
-        lookup = Q(username__icontains=query) | Q(email__icontains=query)
-        qs = self.filter(lookup)
-        return qs
-
 
     class Meta:
         ordering = ('-created_at',)

@@ -2,6 +2,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
 from auction.models import Auction
+from auction.selectors import get_auction
 
 
 class AuctionConsumer(AsyncJsonWebsocketConsumer):
@@ -13,24 +14,19 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self) -> None:
         self.auction_id = self.scope["url_route"]["kwargs"]["auction_id"]
         self.group_name = f"auction_{self.auction_id}"
-        if self.group_name is None:
-            raise ValueError
+
+        try:
+            auction = await self.get_auction()
+        except Auction.DoesNotExist:
+            await self.close(code=4404)
+            return
+
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name,
         )
-
         await self.accept()
-
-        auction = await self.get_auction()
-
-        await self.send_json({
-            "type": "auction_state",
-            "auction_id": str(auction.id),
-            "status": auction.status,
-            "current_price": str(auction.current_price),
-            "end_date": auction.end_date.isoformat(),
-        })
+        await self.send_json(self._auction_state(auction))
 
     async def disconnect(self, code) -> None:
         if self.group_name is not None:
@@ -79,4 +75,14 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def get_auction(self) -> Auction:
-        return Auction.objects.get(id=self.auction_id)
+        return get_auction(self.auction_id)
+
+    @staticmethod
+    def _auction_state(auction: Auction) -> dict:
+        return {
+            "type": "auction_state",
+            "auction_id": str(auction.id),
+            "status": auction.status,
+            "current_price": str(auction.current_price),
+            "end_date": auction.end_date.isoformat(),
+        }

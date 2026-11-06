@@ -26,7 +26,7 @@ from django.urls import include, path
 from listing.views import ListingViewSet
 from rating.views import RatingViewSet
 from rest_framework import routers
-from users.views import ProfileViewSet, UserViewSet, WonAuctionsView
+from users.views import ProfileViewSet, UserViewSet, WonAuctionsViewSet
 from watchlist.views import WatchlistViewSet
 
 router = routers.DefaultRouter()
@@ -64,7 +64,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path("auth/", include("users.urls")),
     path('profile/', ProfileViewSet.as_view()),
-    path("profile/won_auctions/", WonAuctionsView.as_view({"get": "list"})),
+    path("profile/won_auctions/", WonAuctionsViewSet.as_view({"get": "list"})),
     path('users/', UserViewSet.as_view({
         "get": "list",
     })),

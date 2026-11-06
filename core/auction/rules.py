@@ -1,21 +1,28 @@
-from auction.models import AuctionStatus as S
+from rest_framework.exceptions import ValidationError
 
+from auction.models import AuctionStatus
 
-class InvalidAuctionTransition(Exception):
-    pass
-
-ALLOWED = {
-    S.DRAFT:   {S.ACTIVE},
-    S.ACTIVE:  {S.SOLD, S.EXPIRED},
-    S.SOLD:    set(),
-    S.EXPIRED: set(),
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    AuctionStatus.DRAFT: {AuctionStatus.ACTIVE},
+    AuctionStatus.ACTIVE: {AuctionStatus.SOLD, AuctionStatus.EXPIRED},
+    AuctionStatus.SOLD: set(),
+    AuctionStatus.EXPIRED: set(),
 }
 
 
-def ensure_transition(current: str, target: str):
-    if target not in ALLOWED[current]:
+class InvalidAuctionTransition(ValidationError):
+    """Raised when an auction cannot move to the requested status."""
+
+    default_detail = "Invalid auction transition."
+    default_code = "invalid_transition"
+
+
+def ensure_transition(current: str, target: str) -> None:
+    allowed = ALLOWED_TRANSITIONS.get(current, set())
+    if target not in allowed:
         raise InvalidAuctionTransition(f"{current} -> {target}")
 
+
 def ensure_active(status: str) -> None:
-    if status != S.ACTIVE:
+    if status != AuctionStatus.ACTIVE:
         raise InvalidAuctionTransition(f"Auction is not active ({status})")

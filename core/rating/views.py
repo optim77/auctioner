@@ -1,9 +1,8 @@
 from auction.models import Auction, AuctionStatus
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
-from users.permissions.permissions_utils import IsOwnerOfRating
-
 from rating.models import Rating
+from rating.permissions import IsOwnerOfRating
 from rating.serializers.serializers import RatingSerializer
 
 

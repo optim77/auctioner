@@ -1,7 +1,10 @@
+from datetime import timedelta
+
 import pytest
 from auction.models import AuctionStatus
 from auction.services import AuctionServices
 from bid.services import BidService
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 
@@ -79,8 +82,13 @@ def test_close_draft_auction(draft_auction):
         closed_auction = AuctionServices.close_auction(draft_auction.id)
         assert closed_auction.status == AuctionStatus.DRAFT
 
+def _end_auction(auction):
+    auction.end_date = timezone.now() - timedelta(minutes=1)
+    auction.save(update_fields=["end_date"])
+
 @pytest.mark.django_db
 def test_close_active_auction_without_bids(auction):
+    _end_auction(auction)
     closed_auction = AuctionServices.close_auction(auction.id)
     assert closed_auction.status == AuctionStatus.EXPIRED
 
@@ -91,6 +99,7 @@ def test_close_active_auction_with_bid(auction, bidder):
         bidder=bidder,
         bid_price=120,
     )
+    _end_auction(auction)
     closed_auction = AuctionServices.close_auction(auction.id)
     assert closed_auction.status == AuctionStatus.SOLD
     assert closed_auction.bids.count() == 1
@@ -107,6 +116,7 @@ def test_close_active_auction_with_bids(auction, bidder, second_bidder):
         bidder=second_bidder,
         bid_price=160,
     )
+    _end_auction(auction)
     closed_auction = AuctionServices.close_auction(auction.id)
     assert closed_auction.status == AuctionStatus.SOLD
     assert closed_auction.bids.count() == 2

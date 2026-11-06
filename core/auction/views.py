@@ -2,14 +2,15 @@ from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from users.permissions.permissions_utils import IsOwnerOfAuction
 
 from auction.models import Auction
+from auction.permissions import IsOwnerOfAuction
 from auction.selectors import (
+    get_active_auctions,
     get_hot_auctions,
-    newest_auction,
-    newest_auction_in_category,
-    search_auction,
+    get_newest_auctions,
+    get_newest_auctions_in_category,
+    search_auctions,
 )
 from auction.serializers import AuctionSerializer
 from auction.services import AuctionServices
@@ -20,54 +21,60 @@ class AuctionViewSet(viewsets.ModelViewSet):
     serializer_class = AuctionSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsOwnerOfAuction]
-    lookup_field = 'id'
+    lookup_field = "id"
 
     def get_queryset(self):
         if self.action != "list":
-            return Auction.objects.all()
+            return Auction.objects.with_related()
+
         search = self.request.query_params.get("q")
-        return search_auction(search) if search else Auction.objects.is_active()
+        if search:
+            return search_auctions(search)
+
+        return get_active_auctions()
+
+    def _run_transition(self, service) -> Response:
+        auction = service(self.get_object().id)
+        return Response(
+            self.get_serializer(auction).data,
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=["post"])
     def activate(self, request, id=None) -> Response:
-        auction = self.get_object()
-        auction = AuctionServices.activate(auction.id)
-        return Response(AuctionSerializer(auction).data, status=status.HTTP_200_OK)
+        return self._run_transition(AuctionServices.activate)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def finish(self, request, id=None) -> Response:
-        auction = self.get_object()
-        auction = AuctionServices.finish(auction.id)
-        return Response(
-            AuctionSerializer(auction).data, status=status.HTTP_200_OK
-        )
+        return self._run_transition(AuctionServices.finish)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def expire(self, request, id=None) -> Response:
-        auction = self.get_object()
-        auction = AuctionServices.expire(auction.id)
-        return Response(
-            AuctionSerializer(auction).data, status=status.HTTP_200_OK
-        )
+        return self._run_transition(AuctionServices.expire)
+
 
 class NewestAuctionViewSet(generics.ListAPIView):
     serializer_class = AuctionSerializer
 
     def get_queryset(self):
-        return newest_auction()
+        return get_newest_auctions()
 
 
 class NewestInCategoryViewSet(generics.ListAPIView):
     serializer_class = AuctionSerializer
 
     def get_queryset(self):
-        category = self.request.query_params.get("category")
-        return  newest_auction_in_category(category=category) if category else Auction.objects.none()
+        category = self.kwargs.get("category") or self.request.query_params.get(
+            "category"
+        )
+        if not category:
+            return Auction.objects.none()
+
+        return get_newest_auctions_in_category(category)
 
 
 class HotAuctionViewSet(generics.ListAPIView):
-    serializer_class  = AuctionSerializer
+    serializer_class = AuctionSerializer
 
     def get_queryset(self):
         return get_hot_auctions()
-

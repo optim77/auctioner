@@ -1,8 +1,7 @@
 from rest_framework import viewsets
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.permissions.permissions_utils import IsAdminOrReadOnly
-
+from categories.permissions import IsAdminOrReadOnly
 from categories.models import Category
 from categories.serializers import CategorySerializer
 

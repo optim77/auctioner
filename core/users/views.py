@@ -1,29 +1,27 @@
-from auction.models import Auction
-from auction.serializers import AuctionSerializer
 from django.contrib.auth import logout
 from django.db import transaction
 from django.db.models import QuerySet
-from rest_framework import generics, serializers, status, viewsets
-from rest_framework.generics import CreateAPIView
+from rest_framework import serializers, viewsets
+from rest_framework.generics import CreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from auction.models import Auction
+from auction.serializers import AuctionSerializer
+
 from users.mixins import UserQueryMixin
 from users.models import User
-from users.serializers.serializers import (
-    LoginSerializer,
-    UserRegisterSerializer,
-    UserSerializer,
-)
+from users.serializers import LoginSerializer, UserRegisterSerializer, UserSerializer
 
 
 class RegisterView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
+
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
@@ -40,42 +38,35 @@ class LoginView(APIView):
             'access': str(refresh.access_token),
         })
 
-class ProfileViewSet(generics.RetrieveUpdateDestroyAPIView):
+
+class ProfileViewSet(RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get_object(self):
+    def get_object(self) -> User:
         return self.request.user
-
-    def perform_create(self) -> Response:
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     # TODO: need to implement saving process for other fields + emails, etc.
     def perform_update(self, serializer) -> User:
-        user = serializer.instance
-        email = serializer.validated_data.get('email')
-        password = serializer.validated_data.pop('password', None)
-
-        if email is not None:
+        if 'email' in serializer.validated_data:
             raise serializers.ValidationError({
                 'email': 'Cannot change email'
             })
 
+        password = serializer.validated_data.pop('password', None)
+        user = serializer.save()
+
         if password:
             user.set_password(password)
-
-        serializer.save()
-
-        if password:
             user.save(update_fields=['password'])
         return user
 
     @transaction.atomic
-    def perform_destroy(self, request, instance: User) -> None:
+    def perform_destroy(self, instance: User) -> None:
         instance.deleted = True
         instance.save(update_fields=['deleted'])
-        logout(request)
+        logout(self.request)
 
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
@@ -87,25 +78,17 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     lookup_url_kwarg = 'id'
 
     def get_queryset(self) -> QuerySet[User]:
-        queryset = User.objects.only(
-            'id',
-            'username',
-            'date_joined',
-        )
+        queryset = User.objects.filter(deleted=False)
 
         search = self.request.query_params.get('search')
-
         if search:
-            queryset = queryset.filter(
-                username__icontains=search
-            )
+            queryset = queryset.search(search)
 
         return queryset
 
 
-class WonAuctionsView(UserQueryMixin, viewsets.ReadOnlyModelViewSet):
+class WonAuctionsViewSet(UserQueryMixin, viewsets.ReadOnlyModelViewSet):
     user_field = "winner"
 
     queryset = Auction.objects.all()
     serializer_class = AuctionSerializer
-

@@ -1,142 +1,197 @@
+from datetime import timedelta
 from uuid import UUID
 
-from auction.rules import ensure_transition, InvalidAuctionTransition
-from bid.models import Bid
+from bid.selectors import get_highest_bid
 from django.db import transaction
 from django.utils import timezone
 from events.kafka.events import KafkaAuctionEndedEvent, KafkaAuctionStartedEvent
 from events.kafka.publisher import KafkaPublisher
-from events.ws.events import AuctionEndedEvent, AuctionStartedEvent
+from events.ws.events import (
+    AuctionEndedEvent,
+    AuctionEndingSoonEvent,
+    AuctionStartedEvent,
+)
 from events.ws.publisher import EventPublisher
-from watchlist.models import Watchlist
 
 from auction.models import Auction, AuctionStatus
+from auction.rules import InvalidAuctionTransition, ensure_transition
+from auction.selectors import (
+    get_auction_for_update,
+    get_auctions_ending_between,
+    get_bidder_ids,
+    get_expired_auction_ids,
+    get_watchlist_user_ids,
+)
 
 
 class AuctionServices:
+    """Write-side operations for the auction lifecycle."""
 
     @staticmethod
     @transaction.atomic
     def activate(auction_id: UUID) -> Auction:
-        auction = Auction.objects.select_for_update().get(id=auction_id)
+        auction = get_auction_for_update(auction_id)
         ensure_transition(auction.status, AuctionStatus.ACTIVE)
+
         auction.status = AuctionStatus.ACTIVE
-        auction.save(update_fields=["status", "current_price"])
         if auction.current_price is None:
             auction.current_price = auction.start_price
-
         auction.save(update_fields=["status", "current_price"])
-        ws_event = AuctionStartedEvent(
-            auction_id=auction_id,
+
+        started_event = AuctionStartedEvent(
+            auction_id=auction.id,
             status=auction.status,
             start_price=str(auction.start_price),
         )
-
-        transaction.on_commit(lambda: EventPublisher.publish(ws_event))
+        transaction.on_commit(lambda event=started_event: EventPublisher.publish(event))
         transaction.on_commit(lambda: AuctionServices.notify_watchers(auction))
         return auction
 
     @staticmethod
     @transaction.atomic
-    def finish(auction_id) -> Auction:
-        auction = (Auction.objects.select_for_update().get(id=auction_id))
-        highest_bid = (Bid.objects.filter(auction=auction).order_by("-bid_price", "created_at").first())
+    def finish(auction_id: UUID) -> Auction:
+        """Finish an active auction early and mark it as sold."""
+        auction = get_auction_for_update(auction_id)
         ensure_transition(auction.status, AuctionStatus.SOLD)
-        auction.status = AuctionStatus.SOLD
-        auction.winner = auction.highest_bid.bidder
-        auction.final_price = highest_bid.bid_price
-        auction.save(update_fields=['status', 'winner', 'final_price'])
+
+        winning_bid = get_highest_bid(auction)
+        AuctionServices._mark_as_sold(auction, winning_bid)
         return auction
 
     @staticmethod
     @transaction.atomic
-    def expire(auction_id) -> Auction:
-        auction = (Auction.objects.select_for_update().get(id=auction_id))
-        ensure_transition(auction.status, AuctionStatus.EXPIRED)
-        auction.status = AuctionStatus.EXPIRED
-        auction.final_price = auction.start_price
-        auction.save(update_fields=['status', 'final_price'])
+    def expire(auction_id: UUID) -> Auction:
+        auction = get_auction_for_update(auction_id)
+        AuctionServices._mark_as_expired(auction, final_price=auction.start_price)
         return auction
-
 
     @staticmethod
     def close_expired_auctions() -> int:
-        ids = list(
-            Auction.objects.filter(status=AuctionStatus.ACTIVE, end_date__lte=timezone.now())
-            .values_list("id", flat=True)
-        )
+        now = timezone.now()
         closed = 0
-        for auction_id in ids:
+
+        for auction_id in get_expired_auction_ids(now):
             try:
-                AuctionServices.close_auction(auction_id=auction_id)
-                closed += 1
+                AuctionServices.close_auction(auction_id)
             except InvalidAuctionTransition:
                 continue
-        return closed
+            closed += 1
 
+        return closed
 
     @staticmethod
     @transaction.atomic
-    def close_auction(auction_id) -> Auction:
-        auction = (
-            Auction.objects
-            .select_for_update()
-            .get(id=auction_id)
+    def close_auction(auction_id: UUID) -> Auction:
+        """Close an auction once its end date has passed."""
+        auction = get_auction_for_update(auction_id)
+        winning_bid = get_highest_bid(auction)
+        target_status = (
+            AuctionStatus.SOLD if winning_bid is not None else AuctionStatus.EXPIRED
         )
-        winning_bid = (
-            auction.bids
-            .order_by("-bid_price", "created_at")
-            .first()
-        )
+
+        # Validate the transition even when the auction has not ended yet, so
+        # already closed auctions are reported consistently.
+        ensure_transition(auction.status, target_status)
+
+        if auction.end_date > timezone.now():
+            return auction
 
         if winning_bid is None:
-            ensure_transition(auction.status, AuctionStatus.EXPIRED)
-            auction.status = AuctionStatus.EXPIRED
+            AuctionServices._mark_as_expired(auction, final_price=None)
         else:
-            ensure_transition(auction.status, AuctionStatus.SOLD)
-            auction.status = AuctionStatus.SOLD
-            auction.final_price = winning_bid.bid_price
-            auction.winner = winning_bid.bidder
-            auction.sold_date = timezone.now()
+            AuctionServices._mark_as_sold(auction, winning_bid)
 
-        auction.save(
-            update_fields=["status", "final_price", "winner", "sold_date"]
-        )
-        ended_event = AuctionEndedEvent(
-            auction_id=auction.id,
-            status=auction.status,
-            final_price=str(auction.final_price) if auction.final_price is not None else None,
-        )
-        transaction.on_commit(lambda event=ended_event: EventPublisher.publish(event))
-        transaction.on_commit(lambda: AuctionServices.notify_bidders(auction))
         return auction
 
     @staticmethod
-    def notify_watchers(auction: Auction) -> None:
-        watchers = Watchlist.objects.filter(auction=auction.id)
-        for watcher in watchers:
-            if watcher.auction.status == AuctionStatus.ACTIVE:
-                kafka_event = KafkaAuctionStartedEvent(
-                    auction_id=auction.id,
-                    status=auction.status,
-                    start_price=auction.current_price,
-                    listing_name=auction.listing.name,
-                    listing_id=auction.listing.id,
-                    receiver_id=watcher.user.id
+    def notify_ending_soon(
+        *,
+        now=None,
+        soon=None,
+    ) -> int:
+        now = now or timezone.now()
+        soon = soon or now + timedelta(minutes=5)
+        auctions = get_auctions_ending_between(now, soon)
 
-                )
-                KafkaPublisher.publish(kafka_event)
+        notified = 0
+        for auction in auctions:
+            event = AuctionEndingSoonEvent(
+                auction_id=auction.id,
+                end_date=auction.end_date,
+            )
+            EventPublisher.publish(event)
+            notified += 1
+
+        return notified
+
+    @staticmethod
+    def notify_watchers(auction: Auction) -> None:
+        if auction.status != AuctionStatus.ACTIVE:
+            return
+
+        for user_id in get_watchlist_user_ids(auction.id):
+            event = KafkaAuctionStartedEvent(
+                auction_id=auction.id,
+                status=auction.status,
+                start_price=str(auction.current_price),
+                listing_name=auction.listing.name,
+                listing_id=str(auction.listing_id),
+                receiver_id=str(user_id),
+            )
+            KafkaPublisher.publish(event)
 
     @staticmethod
     def notify_bidders(auction: Auction) -> None:
-        user_ids = Bid.objects.filter(auction_id=auction.id).values_list("bidder_id", flat=True).distinct()
-        for user_id in user_ids:
+        for user_id in get_bidder_ids(auction.id):
             event = KafkaAuctionEndedEvent(
                 auction_id=auction.id,
                 status=auction.status,
-                final_price=auction.final_price,
+                final_price=(
+                    str(auction.final_price)
+                    if auction.final_price is not None
+                    else None
+                ),
                 listing_name=auction.listing.name,
-                listing_id=auction.listing.id,
-                receiver_id=user_id
+                listing_id=str(auction.listing_id),
+                receiver_id=str(user_id),
             )
             KafkaPublisher.publish(event)
+
+    @staticmethod
+    def _mark_as_sold(auction: Auction, winning_bid) -> None:
+        ensure_transition(auction.status, AuctionStatus.SOLD)
+
+        auction.status = AuctionStatus.SOLD
+        auction.sold_date = timezone.now()
+        if winning_bid is not None:
+            auction.winner = winning_bid.bidder
+            auction.final_price = winning_bid.bid_price
+
+        auction.save(
+            update_fields=["status", "sold_date", "winner", "final_price"]
+        )
+        AuctionServices._publish_ended(auction)
+        transaction.on_commit(lambda: AuctionServices.notify_bidders(auction))
+
+    @staticmethod
+    def _mark_as_expired(auction: Auction, *, final_price=None) -> None:
+        ensure_transition(auction.status, AuctionStatus.EXPIRED)
+
+        auction.status = AuctionStatus.EXPIRED
+        auction.final_price = final_price
+        auction.save(update_fields=["status", "final_price"])
+        AuctionServices._publish_ended(auction)
+        transaction.on_commit(lambda: AuctionServices.notify_bidders(auction))
+
+    @staticmethod
+    def _publish_ended(auction: Auction) -> None:
+        event = AuctionEndedEvent(
+            auction_id=auction.id,
+            status=auction.status,
+            final_price=(
+                str(auction.final_price)
+                if auction.final_price is not None
+                else None
+            ),
+        )
+        transaction.on_commit(lambda: EventPublisher.publish(event))

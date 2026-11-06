@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 from asgiref.sync import sync_to_async
 from auction.models import Auction
@@ -6,6 +8,7 @@ from auction.tasks import check_auctions_ending_soon
 from bid.services import BidService
 from channels.testing import WebsocketCommunicator
 from core.asgi import application
+from django.utils import timezone
 
 
 @pytest.mark.asyncio
@@ -106,6 +109,8 @@ async def test_client_receives_auction_ended_event(auction):
         "current_price": "100.00",
         "end_date": auction.end_date.isoformat(),
     }
+    auction.end_date = timezone.now() - timedelta(minutes=1)
+    await sync_to_async(auction.save)(update_fields=["end_date"])
     auction = await sync_to_async(AuctionServices.close_auction)(auction_id=auction.id)
     response = await communicator.receive_json_from()
     assert response == {

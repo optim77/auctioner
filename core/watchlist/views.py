@@ -2,8 +2,8 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from users.permissions.permissions_utils import IsOwnerOfWatchlist
 from watchlist.models import Watchlist
+from watchlist.permissions import IsOwnerOfWatchlist
 from watchlist.selectors import get_user_watchlist
 from watchlist.serializers import WatchlistSerializer
 from watchlist.services import WatchlistServices

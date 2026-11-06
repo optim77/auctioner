@@ -3,9 +3,8 @@ from rest_framework import viewsets
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from categories.services import increment_category_items_count, decrement_category_items_count
-from users.permissions.permissions_utils import IsOwnerOfListing
-
 from listing.models import Listing
+from listing.permissions import IsOwnerOfListing
 from listing.serializers import ListingSerializer
 
 

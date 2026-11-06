@@ -2,7 +2,7 @@ from datetime import timedelta
 
 import pytest
 from auction.models import Auction, AuctionStatus
-from auction.rules import ensure_transition, InvalidAuctionTransition
+from auction.rules import InvalidAuctionTransition, ensure_transition
 from auction.services import AuctionServices
 from django.utils import timezone
 
