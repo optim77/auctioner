@@ -1,18 +1,24 @@
-from categories.models import Category
 from django.db import models
-from django.db.models import ForeignKey, Q
+from django.db.models import Q, QuerySet
+
+from categories.models import Category
 from users.models import User
 from utils.base_model import BaseModel
 
 
 class ListingQuerySet(models.QuerySet):
-    def search(self, query):
-        lookup = (Q(name__icontains=query) | Q(description__icontains=query) | Q(category__icontains=query))
-        qs = self.filter(lookup)
-        return qs
+    def search(self, query: str) -> QuerySet['Listing']:
+        """Return listings matching name, description or category name."""
+        lookup = (
+            Q(name__icontains=query)
+            | Q(description__icontains=query)
+            | Q(category__name__icontains=query)
+        )
+        return self.filter(lookup)
+
 
 class Listing(BaseModel):
-    seller = ForeignKey(User, on_delete=models.CASCADE)
+    seller = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
     description = models.TextField()
     creation_date = models.DateTimeField(auto_now_add=True)
