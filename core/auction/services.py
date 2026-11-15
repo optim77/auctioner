@@ -61,8 +61,14 @@ class AuctionServices:
     @staticmethod
     @transaction.atomic
     def expire(auction_id: UUID) -> Auction:
+        """End an active auction early: SOLD when bids exist, EXPIRED otherwise."""
         auction = get_auction_for_update(auction_id)
-        AuctionServices._mark_as_expired(auction, final_price=auction.start_price)
+        winning_bid = get_highest_bid(auction)
+
+        if winning_bid is not None:
+            AuctionServices._mark_as_sold(auction, winning_bid)
+        else:
+            AuctionServices._mark_as_expired(auction, final_price=None)
         return auction
 
     @staticmethod
