@@ -1,5 +1,6 @@
 from django.db.models import QuerySet
 from rest_framework import viewsets
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from rating.models import Rating
 from rating.permissions import IsOwnerOfRating
@@ -12,6 +13,7 @@ class RatingViewSet(viewsets.ModelViewSet):
 
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsOwnerOfRating]
 
     lookup_field = 'id'
@@ -21,4 +23,8 @@ class RatingViewSet(viewsets.ModelViewSet):
         return Rating.objects.filter(rated_user_id=self.kwargs['user_id'])
 
     def perform_create(self, serializer) -> None:
-        RatingServices.create_rating(serializer, self.request.user)
+        RatingServices.create_rating(
+            serializer,
+            self.request.user,
+            self.kwargs['user_id'],
+        )

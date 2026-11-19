@@ -8,4 +8,7 @@ class UserQueryMixin:
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return qs.filter(**{self.user_field: self.request.user})
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return qs.none()
+        return qs.filter(**{self.user_field: user})

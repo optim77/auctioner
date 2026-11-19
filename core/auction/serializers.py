@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from auction.models import Auction
+from auction.models import Auction, AuctionStatus
 
 
 class AuctionSerializer(serializers.ModelSerializer):
@@ -40,5 +40,23 @@ class AuctionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"end_date": "End date must be later than start date."}
             )
+
+        if self.instance is not None:
+            if "listing" in attrs and attrs["listing"] != self.instance.listing:
+                raise serializers.ValidationError(
+                    {"listing": "Auction listing cannot be changed."}
+                )
+
+            if self.instance.status != AuctionStatus.DRAFT:
+                for field in ("start_price", "start_date", "end_date"):
+                    if field in attrs and attrs[field] != getattr(self.instance, field):
+                        raise serializers.ValidationError(
+                            {
+                                field: (
+                                    "Price and dates cannot be changed after "
+                                    "the auction has been activated."
+                                )
+                            }
+                        )
 
         return attrs

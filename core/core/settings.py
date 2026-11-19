@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
-from celery.schedules import crontab
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -214,8 +213,8 @@ CELERY_BEAT_SCHEDULE = {
     },
     "process-user-ratings": {
         "task": "rating.tasks.sum_user_rating",
-        # daily at midnight
-        "schedule": crontab(hour=0, minute=0),
+        # keep averages fresh shortly after ratings are added, edited or deleted
+        "schedule": 300.0,
     }
 }
 

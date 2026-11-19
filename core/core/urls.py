@@ -34,7 +34,6 @@ router.register(r'auctions', AuctionViewSet, basename='auction')
 router.register(r'category', CategoryViewSet, basename='category')
 router.register(r'listing', ListingViewSet, basename='listing')
 router.register(r'watchlist', WatchlistViewSet, basename='watchlist')
-router.register(r"rating", RatingViewSet, basename='rating')
 
 urlpatterns = [
     path('newest_auctions/', NewestAuctionViewSet.as_view(), name="newest_auctions"),

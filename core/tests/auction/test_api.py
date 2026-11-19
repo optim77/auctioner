@@ -4,6 +4,7 @@ import pytest
 from auction.models import Auction, AuctionStatus
 from auction.rules import InvalidAuctionTransition, ensure_transition
 from auction.services import AuctionServices
+from bid.services import BidService
 from django.utils import timezone
 
 
@@ -403,3 +404,119 @@ def test_active_auction_can_be_sold():
 def test_sold_auction_cannot_be_activated():
     with pytest.raises(InvalidAuctionTransition):
         ensure_transition(AuctionStatus.SOLD, AuctionStatus.ACTIVE)
+
+
+@pytest.mark.django_db
+def test_seller_can_activate_draft_auction(api_client, seller, draft_auction):
+    api_client.force_authenticate(user=seller)
+
+    response = api_client.post(
+        f"/auctions/{draft_auction.id}/activate/",
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["status"] == AuctionStatus.ACTIVE
+
+
+@pytest.mark.django_db
+def test_other_user_cannot_activate_auction(api_client, bidder, draft_auction):
+    api_client.force_authenticate(user=bidder)
+
+    response = api_client.post(
+        f"/auctions/{draft_auction.id}/activate/",
+        format="json",
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_seller_cannot_finish_auction_before_end_date(api_client, seller, auction):
+    api_client.force_authenticate(user=seller)
+
+    response = api_client.post(
+        f"/auctions/{auction.id}/finish/",
+        format="json",
+    )
+
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_seller_can_finish_ended_auction_with_bid(
+    api_client, seller, auction, bidder
+):
+    BidService.place_bid(
+        auction_id=auction.id,
+        bidder=bidder,
+        bid_price=120,
+    )
+    auction.end_date = timezone.now() - timedelta(minutes=1)
+    auction.save(update_fields=["end_date"])
+    api_client.force_authenticate(user=seller)
+
+    response = api_client.post(
+        f"/auctions/{auction.id}/finish/",
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert response.data["status"] == AuctionStatus.SOLD
+    assert response.data["winner"] == bidder.id
+
+
+@pytest.mark.django_db
+def test_seller_cannot_change_auction_listing(
+    api_client, seller, draft_auction, second_listing
+):
+    api_client.force_authenticate(user=seller)
+
+    response = api_client.patch(
+        f"/auctions/{draft_auction.id}/",
+        {"listing": str(second_listing.id)},
+        format="json",
+    )
+
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_cannot_change_price_or_dates_of_active_auction(
+    api_client, seller, auction
+):
+    api_client.force_authenticate(user=seller)
+
+    price_response = api_client.patch(
+        f"/auctions/{auction.id}/",
+        {"start_price": "200.00"},
+        format="json",
+    )
+    date_response = api_client.patch(
+        f"/auctions/{auction.id}/",
+        {"end_date": timezone.now() + timedelta(days=30)},
+        format="json",
+    )
+
+    assert price_response.status_code == 400
+    assert date_response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_create_auction_with_malformed_listing_id_returns_400(
+    api_client, seller
+):
+    api_client.force_authenticate(user=seller)
+
+    response = api_client.post(
+        "/auctions/",
+        {
+            "start_price": "120.00",
+            "start_date": timezone.now(),
+            "end_date": timezone.now() + timedelta(days=7),
+            "listing": "not-a-uuid",
+        },
+        format="json",
+    )
+
+    assert response.status_code == 403

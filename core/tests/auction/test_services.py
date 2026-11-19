@@ -32,9 +32,43 @@ def test_set_finish_from_draft(draft_auction):
         assert auction.status == AuctionStatus.SOLD
 
 @pytest.mark.django_db
-def test_set_finish_from_active(auction):
+def test_set_finish_from_active(auction, bidder):
+    BidService.place_bid(
+        auction_id=auction.id,
+        bidder=bidder,
+        bid_price=120,
+    )
+    _end_auction(auction)
     auction = AuctionServices.finish(auction.id)
     assert auction.status == AuctionStatus.SOLD
+    assert auction.winner_id == bidder.id
+
+
+@pytest.mark.django_db
+def test_cannot_finish_before_end_date(auction, bidder):
+    BidService.place_bid(
+        auction_id=auction.id,
+        bidder=bidder,
+        bid_price=120,
+    )
+    with pytest.raises(ValidationError):
+        AuctionServices.finish(auction.id)
+
+
+@pytest.mark.django_db
+def test_cannot_finish_without_bids(auction):
+    _end_auction(auction)
+    with pytest.raises(ValidationError):
+        AuctionServices.finish(auction.id)
+
+
+@pytest.mark.django_db
+def test_cannot_activate_before_start_date(draft_auction):
+    draft_auction.start_date = timezone.now() + timedelta(hours=1)
+    draft_auction.save(update_fields=["start_date"])
+
+    with pytest.raises(ValidationError):
+        AuctionServices.activate(draft_auction.id)
 
 @pytest.mark.django_db
 def test_set_finish_from_finished(finished_auction):

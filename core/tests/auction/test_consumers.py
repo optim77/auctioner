@@ -9,14 +9,28 @@ from bid.services import BidService
 from channels.testing import WebsocketCommunicator
 from core.asgi import application
 from django.utils import timezone
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
+def auth_headers(user):
+    token = RefreshToken.for_user(user).access_token
+    return [(b"authorization", f"Bearer {token}".encode())]
+
+
+@pytest.fixture(autouse=True)
+def in_memory_channel_layer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+    }
 
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
-async def test_client_can_connect_to_auction_websocket(auction: Auction):
+async def test_client_can_connect_to_auction_websocket(auction: Auction, seller):
     communicator = WebsocketCommunicator(
         application,
         f"/ws/auctions/{auction.id}/",
+        headers=auth_headers(seller),
     )
 
     connected, _ = await communicator.connect()
@@ -28,10 +42,11 @@ async def test_client_can_connect_to_auction_websocket(auction: Auction):
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
-async def test_client_receives_bid_placed_event(auction, bidder):
+async def test_client_receives_bid_placed_event(auction, bidder, seller):
     communicator = WebsocketCommunicator(
         application,
         f"/ws/auctions/{auction.id}/",
+        headers=auth_headers(seller),
     )
 
     connected, _ = await communicator.connect()
@@ -55,7 +70,6 @@ async def test_client_receives_bid_placed_event(auction, bidder):
         "type": "bid_placed",
         "auction_id": str(auction.id),
         "bid_id": str(bid.id),
-        "bidder_id": str(bid.bidder.id),
         "bid_price": str(bid.bid_price),
         "current_price": "200",
     }
@@ -65,10 +79,11 @@ async def test_client_receives_bid_placed_event(auction, bidder):
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
-async def test_client_receives_auction_started_event(draft_auction):
+async def test_client_receives_auction_started_event(draft_auction, seller):
     communicator = WebsocketCommunicator(
         application,
         f"/ws/auctions/{draft_auction.id}/",
+        headers=auth_headers(seller),
     )
 
     connected, _ = await communicator.connect()
@@ -93,10 +108,11 @@ async def test_client_receives_auction_started_event(draft_auction):
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
-async def test_client_receives_auction_ended_event(auction):
+async def test_client_receives_auction_ended_event(auction, seller):
     communicator = WebsocketCommunicator(
         application,
         f"/ws/auctions/{auction.id}/",
+        headers=auth_headers(seller),
     )
 
     connected, _ = await communicator.connect()
@@ -124,10 +140,11 @@ async def test_client_receives_auction_ended_event(auction):
 
 @pytest.mark.asyncio
 @pytest.mark.django_db(transaction=True)
-async def test_client_receives_auction_ending_soon_event(auction_ending_soon):
+async def test_client_receives_auction_ending_soon_event(auction_ending_soon, seller):
     communicator = WebsocketCommunicator(
         application,
         f"/ws/auctions/{auction_ending_soon.id}/",
+        headers=auth_headers(seller),
     )
 
     connected, _ = await communicator.connect()
@@ -144,4 +161,18 @@ async def test_client_receives_auction_ending_soon_event(auction_ending_soon):
     response = await communicator.receive_json_from()
     assert response["type"] == "auction_ending_soon"
     assert 0 <= int(response["time_to_end"]) <= 60
+    await communicator.disconnect()
+
+
+@pytest.mark.asyncio
+@pytest.mark.django_db(transaction=True)
+async def test_unauthenticated_client_cannot_connect(auction):
+    communicator = WebsocketCommunicator(
+        application,
+        f"/ws/auctions/{auction.id}/",
+    )
+
+    connected, _ = await communicator.connect()
+
+    assert connected is False
     await communicator.disconnect()

@@ -1,3 +1,5 @@
+from decimal import ROUND_HALF_UP, Decimal
+
 from celery import shared_task
 from django.db import OperationalError, transaction
 from django.db.models import Avg
@@ -20,7 +22,7 @@ def sum_user_rating():
     rating is created; after recomputation the flag is cleared.
     """
     flagged_ids = User.objects.filter(
-        sum_user_rating=True, deleted=False
+        sum_user_rating=True
     ).values_list('id', flat=True)
 
     for user_id in flagged_ids:
@@ -33,10 +35,15 @@ def sum_user_rating():
                 value=Avg('rating')
             )['value']
 
-            update_fields = ['sum_user_rating']
+            update_fields = ['sum_user_rating', 'rating']
             if average is not None:
-                user.rating = round(average)
-                update_fields.append('rating')
+                user.rating = int(
+                    Decimal(str(average)).quantize(
+                        Decimal(1), rounding=ROUND_HALF_UP
+                    )
+                )
+            else:
+                user.rating = 0
 
             user.sum_user_rating = False
             user.save(update_fields=update_fields)

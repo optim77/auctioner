@@ -26,3 +26,9 @@ class Rating(BaseModel):
 
     class Meta:
         ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['auction', 'author'],
+                name='unique_rating_per_auction_author',
+            ),
+        ]

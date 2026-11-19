@@ -10,7 +10,7 @@ class LoginSerializer(serializers.Serializer):
         user = authenticate(username=attrs['email'], password=attrs['password'])
         if not user:
             raise serializers.ValidationError("Wrong email or password")
-        if not user.is_active:
-            raise serializers.ValidationError("Inactive user")
+        if not user.is_active or user.deleted:
+            raise serializers.ValidationError("Wrong email or password")
         attrs['user'] = user
         return attrs

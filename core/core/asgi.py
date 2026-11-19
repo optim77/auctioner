@@ -1,17 +1,16 @@
 import os
 
-from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.routing import ProtocolTypeRouter
 from django.core.asgi import get_asgi_application
-
-from core.routing import websocket_urlpatterns
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 
 django_asgi_app = get_asgi_application()
 
+# Import after django.setup() so consumers can safely import models.
+from core.routing import websocket_application
+
 application = ProtocolTypeRouter({
     "http": django_asgi_app,
-    "websocket": URLRouter(
-        websocket_urlpatterns
-    ),
+    "websocket": websocket_application,
 })

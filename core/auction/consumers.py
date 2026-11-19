@@ -12,6 +12,11 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
         self.auction_id: str | None = None
 
     async def connect(self) -> None:
+        user = self.scope.get("user")
+        if user is None or not getattr(user, "is_authenticated", False):
+            await self.close(code=4401)
+            return
+
         self.auction_id = self.scope["url_route"]["kwargs"]["auction_id"]
         self.group_name = f"auction_{self.auction_id}"
 
@@ -56,7 +61,6 @@ class AuctionConsumer(AsyncJsonWebsocketConsumer):
             "type": "bid_placed",
             "auction_id": event["auction_id"],
             "bid_id": event["bid_id"],
-            "bidder_id": event["bidder_id"],
             "bid_price": event["bid_price"],
             "current_price": event["current_price"],
         })

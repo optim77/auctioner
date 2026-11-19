@@ -12,6 +12,7 @@ from events.ws.events import (
     AuctionStartedEvent,
 )
 from events.ws.publisher import EventPublisher
+from rest_framework.exceptions import ValidationError
 
 from auction.models import Auction, AuctionStatus
 from auction.rules import InvalidAuctionTransition, ensure_transition
@@ -28,10 +29,21 @@ class AuctionServices:
     """Write-side operations for the auction lifecycle."""
 
     @staticmethod
+    def _ensure_started(auction: Auction) -> None:
+        if auction.start_date > timezone.now():
+            raise ValidationError("Auction has not started yet.")
+
+    @staticmethod
+    def _ensure_ended(auction: Auction) -> None:
+        if auction.end_date > timezone.now():
+            raise ValidationError("Auction has not ended yet.")
+
+    @staticmethod
     @transaction.atomic
     def activate(auction_id: UUID) -> Auction:
         auction = get_auction_for_update(auction_id)
         ensure_transition(auction.status, AuctionStatus.ACTIVE)
+        AuctionServices._ensure_started(auction)
 
         auction.status = AuctionStatus.ACTIVE
         if auction.current_price is None:
@@ -50,9 +62,10 @@ class AuctionServices:
     @staticmethod
     @transaction.atomic
     def finish(auction_id: UUID) -> Auction:
-        """Finish an active auction early and mark it as sold."""
+        """Mark a finished auction with bids as sold."""
         auction = get_auction_for_update(auction_id)
         ensure_transition(auction.status, AuctionStatus.SOLD)
+        AuctionServices._ensure_ended(auction)
 
         winning_bid = get_highest_bid(auction)
         AuctionServices._mark_as_sold(auction, winning_bid)
@@ -61,8 +74,11 @@ class AuctionServices:
     @staticmethod
     @transaction.atomic
     def expire(auction_id: UUID) -> Auction:
-        """End an active auction early: SOLD when bids exist, EXPIRED otherwise."""
+        """Finish an ended auction: SOLD when bids exist, EXPIRED otherwise."""
         auction = get_auction_for_update(auction_id)
+        AuctionServices._ensure_ended(auction)
+        ensure_transition(auction.status, AuctionStatus.EXPIRED)
+
         winning_bid = get_highest_bid(auction)
 
         if winning_bid is not None:
@@ -165,13 +181,15 @@ class AuctionServices:
 
     @staticmethod
     def _mark_as_sold(auction: Auction, winning_bid) -> None:
+        if winning_bid is None:
+            raise ValidationError("Cannot sell an auction without bids.")
+
         ensure_transition(auction.status, AuctionStatus.SOLD)
 
         auction.status = AuctionStatus.SOLD
         auction.sold_date = timezone.now()
-        if winning_bid is not None:
-            auction.winner = winning_bid.bidder
-            auction.final_price = winning_bid.bid_price
+        auction.winner = winning_bid.bidder
+        auction.final_price = winning_bid.bid_price
 
         auction.save(
             update_fields=["status", "sold_date", "winner", "final_price"]

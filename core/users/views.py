@@ -64,8 +64,11 @@ class ProfileViewSet(RetrieveUpdateDestroyAPIView):
 
     @transaction.atomic
     def perform_destroy(self, instance: User) -> None:
+        # Deactivate the account as well: SimpleJWT rejects tokens of inactive
+        # users and the default auth backend refuses to log them in again.
         instance.deleted = True
-        instance.save(update_fields=['deleted'])
+        instance.is_active = False
+        instance.save(update_fields=['deleted', 'is_active'])
         logout(self.request)
 
 
@@ -92,3 +95,5 @@ class WonAuctionsViewSet(UserQueryMixin, viewsets.ReadOnlyModelViewSet):
 
     queryset = Auction.objects.all()
     serializer_class = AuctionSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]

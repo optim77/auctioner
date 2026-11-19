@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import BaseSerializer
 
@@ -11,21 +11,37 @@ class RatingServices:
 
     @staticmethod
     @transaction.atomic
-    def create_rating(serializer: BaseSerializer, user: User) -> Rating:
-        """Create a rating for a sold auction won by the requesting user."""
+    def create_rating(
+        serializer: BaseSerializer, user: User, rated_user_id
+    ) -> Rating:
+        """Create a rating for an auction won by the requesting user.
+
+        The reviewed user and the listing are derived from the auction instead
+        of being trusted from the request body.
+        """
         auction = Auction.objects.select_related(
             'winner', 'listing__seller'
         ).get(id=serializer.validated_data['auction'].id)
 
         if auction.status != AuctionStatus.SOLD:
             raise ValidationError('Product was not sold!')
-        if auction.winner != user:
+        if auction.winner_id != user.id:
             raise ValidationError('You didnt bought this product!')
-        if Rating.objects.filter(author=user, rated_user=serializer.validated_data['rated_user']).exists():
-            raise ValidationError('You already placed a review!')
 
         seller = auction.listing.seller
-        seller.sum_user_rating = True
-        seller.save(update_fields=['sum_user_rating'])
+        if str(seller.id) != str(rated_user_id):
+            raise ValidationError('You can only rate the seller of the auction.')
+        if seller.id == user.id:
+            raise ValidationError('You cannot rate yourself.')
+        if Rating.objects.filter(auction=auction, author=user).exists():
+            raise ValidationError('You already placed a review!')
 
-        return serializer.save(author=user)
+        try:
+            with transaction.atomic():
+                return serializer.save(
+                    author=user,
+                    listing=auction.listing,
+                    rated_user=seller,
+                )
+        except IntegrityError as exc:
+            raise ValidationError('You already placed a review!') from exc

@@ -11,7 +11,6 @@ class BaseEvent(ABC):
 @dataclass(frozen=True)
 class BidPlacedEvent(BaseEvent):
     bid_id: UUID
-    bidder_id: UUID
     bid_price: str
     current_price: str
 

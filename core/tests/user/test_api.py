@@ -239,3 +239,58 @@ def test_fetch_won_auction(
     db_auction = Auction.objects.get(id=finished_auction.pk)
     assert response.data['results'][0]['winner'] == bidder.id
     assert db_auction.winner.id == bidder.id
+
+
+@pytest.mark.django_db
+def test_user_cannot_escalate_privileges_via_profile(api_client, test_user):
+    api_client.force_authenticate(user=test_user)
+
+    response = api_client.patch(
+        "/profile/",
+        {"role": "admin", "is_staff": True, "is_active": False},
+        format="json",
+    )
+
+    test_user.refresh_from_db()
+    assert response.status_code == 200
+    assert test_user.role == "user"
+    assert test_user.is_staff is False
+    assert test_user.is_active is True
+
+
+@pytest.mark.django_db
+def test_deleted_user_cannot_login_and_old_tokens_are_rejected(
+    api_client, test_user
+):
+    login = api_client.post(
+        "/auth/login/",
+        {"email": "test@test.com", "password": "test"},
+        format="json",
+    )
+    assert login.status_code == 200
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.data['access']}")
+
+    assert api_client.get("/profile/").status_code == 200
+    assert api_client.delete("/profile/").status_code == 204
+
+    test_user.refresh_from_db()
+    assert test_user.deleted is True
+    assert test_user.is_active is False
+    assert api_client.get("/profile/").status_code == 401
+
+    api_client.credentials()
+    response = api_client.post(
+        "/auth/login/",
+        {"email": "test@test.com", "password": "test"},
+        format="json",
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_unauthenticated_user_cannot_fetch_won_auctions(
+    api_client, finished_auction
+):
+    response = api_client.get("/profile/won_auctions/", format="json")
+
+    assert response.status_code == 401

@@ -46,7 +46,6 @@ def publish_bid_placed(event: BidPlacedEvent):
             "type": "bid_placed",
             "auction_id": str(event.auction_id),
             "bid_id": str(event.bid_id),
-            "bidder_id": str(event.bidder_id),
             "bid_price": str(event.bid_price),
             "current_price": str(event.current_price),
         },

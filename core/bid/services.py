@@ -46,7 +46,6 @@ class BidService:
         bid_placed_event = BidPlacedEvent(
             auction_id=auction.id,
             bid_id=bid.id,
-            bidder_id=bid.bidder.id,
             bid_price=str(bid.bid_price),
             current_price=str(auction.current_price),
         )
