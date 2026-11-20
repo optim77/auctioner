@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from auction.models import Auction, AuctionStatus
 from auction.rules import InvalidAuctionTransition, ensure_transition
-from auction.services import AuctionServices
+from auction.services import AuctionService
 from bid.services import BidService
 from django.utils import timezone
 
@@ -348,7 +348,7 @@ def test_active_auction_is_expired_after_end_date(
     auction.end_date = timezone.now() - timedelta(minutes=1)
     auction.save(update_fields=["end_date"])
 
-    AuctionServices.close_auction(auction.id)
+    AuctionService.close_auction(auction.id)
 
     auction.refresh_from_db()
 
@@ -361,7 +361,7 @@ def test_active_auction_is_not_expired_before_end_date(
     auction.end_date = timezone.now() + timedelta(hours=1)
     auction.save(update_fields=["end_date"])
 
-    AuctionServices.close_auction(auction.id)
+    AuctionService.close_auction(auction.id)
 
     auction.refresh_from_db()
 

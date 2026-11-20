@@ -6,7 +6,7 @@ from utils.redis_client import redis_client
 
 from auction.models import Auction
 from auction.selectors import get_auction, get_sold_auctions_to_process
-from auction.services import AuctionServices
+from auction.services import AuctionService
 
 
 @shared_task(
@@ -17,7 +17,7 @@ from auction.services import AuctionServices
     retry_jitter=True,
 )
 def expire_auctions_task() -> None:
-    AuctionServices.close_expired_auctions()
+    AuctionService.close_expired_auctions()
 
 
 @shared_task(
@@ -39,7 +39,7 @@ def do_log_analytics() -> None:
     retry_jitter=True,
 )
 def check_auctions_ending_soon() -> None:
-    AuctionServices.notify_ending_soon()
+    AuctionService.notify_ending_soon()
 
 
 @shared_task(

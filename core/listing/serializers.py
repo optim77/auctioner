@@ -6,5 +6,13 @@ from listing.models import Listing
 class ListingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Listing
-        fields = '__all__'
+        fields = [
+            'id',
+            'seller',
+            'name',
+            'description',
+            'creation_date',
+            'category',
+            'images',
+        ]
         read_only_fields = ('id', 'creation_date', 'seller')

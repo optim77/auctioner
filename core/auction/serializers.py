@@ -6,18 +6,30 @@ from auction.models import Auction, AuctionStatus
 class AuctionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Auction
-        fields = "__all__"
+        fields = [
+            "id",
+            "listing",
+            "start_price",
+            "current_price",
+            "final_price",
+            "start_date",
+            "end_date",
+            "sold_date",
+            "currency",
+            "winner",
+            "bids_counter",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
         read_only_fields = [
             "id",
             "current_price",
             "final_price",
             "sold_date",
-            "status",
-            "currency",
             "winner",
             "bids_counter",
-            "processed",
-            "processing",
+            "status",
             "created_at",
             "updated_at",
         ]

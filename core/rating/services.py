@@ -1,19 +1,17 @@
+from auction.models import Auction, AuctionStatus
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ValidationError
-from rest_framework.serializers import BaseSerializer
-
-from auction.models import Auction, AuctionStatus
-from rating.models import Rating
 from users.models import User
 
+from rating.models import Rating
 
-class RatingServices:
+
+class RatingService:
+    """Write-side operations for ratings."""
 
     @staticmethod
     @transaction.atomic
-    def create_rating(
-        serializer: BaseSerializer, user: User, rated_user_id
-    ) -> Rating:
+    def create_rating(data: dict, user: User, rated_user_id) -> Rating:
         """Create a rating for an auction won by the requesting user.
 
         The reviewed user and the listing are derived from the auction instead
@@ -21,7 +19,7 @@ class RatingServices:
         """
         auction = Auction.objects.select_related(
             'winner', 'listing__seller'
-        ).get(id=serializer.validated_data['auction'].id)
+        ).get(id=data['auction'].id)
 
         if auction.status != AuctionStatus.SOLD:
             raise ValidationError('Product was not sold!')
@@ -38,10 +36,16 @@ class RatingServices:
 
         try:
             with transaction.atomic():
-                return serializer.save(
+                return Rating.objects.create(
                     author=user,
                     listing=auction.listing,
                     rated_user=seller,
+                    auction=auction,
+                    rating=data['rating'],
+                    opinion=data.get('opinion', ''),
                 )
         except IntegrityError as exc:
             raise ValidationError('You already placed a review!') from exc
+
+
+RatingServices = RatingService

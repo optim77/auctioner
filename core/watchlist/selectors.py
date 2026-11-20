@@ -1,6 +1,6 @@
 from django.db.models import QuerySet
-
 from users.models import User
+
 from watchlist.models import Watchlist
 
 

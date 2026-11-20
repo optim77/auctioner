@@ -11,6 +11,19 @@ from users.models import Role, User
 from watchlist.models import Watchlist
 
 
+@pytest.fixture(autouse=True)
+def use_locmem_cache(settings):
+    """Keep throttling tests independent of a running Redis server."""
+    settings.CACHES = {
+        "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
+    }
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+    cache.clear()
+
+
 @pytest.fixture
 def api_client():
     return APIClient()

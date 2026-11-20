@@ -1,11 +1,10 @@
 from uuid import UUID
 
 from auction.models import Auction
-from django.db import transaction
-from django.utils import timezone
-
 from auction.rules import ensure_active
-from bid.selectors import get_highest_bid
+from django.db import transaction
+from django.db.models import F
+from django.utils import timezone
 from events.kafka.events import KafkaBidOutbidEvent
 from events.kafka.publisher import KafkaPublisher
 from events.ws.events import BidPlacedEvent
@@ -14,6 +13,7 @@ from rest_framework.exceptions import ValidationError
 from users.models import User
 
 from bid.models import Bid
+from bid.selectors import get_highest_bid
 
 
 class BidService:
@@ -21,7 +21,11 @@ class BidService:
     @staticmethod
     @transaction.atomic
     def place_bid(*, auction_id: UUID, bidder: User, bid_price: int) -> Bid:
-        auction: Auction = Auction.objects.select_for_update().get(id=auction_id)
+        auction: Auction = (
+            Auction.objects.select_for_update(of=("self",))
+            .select_related("listing")
+            .get(id=auction_id)
+        )
         ensure_active(auction.status)
 
         if auction.end_date <= timezone.now():
@@ -40,8 +44,12 @@ class BidService:
         bid = Bid.objects.create(auction=auction, bidder=bidder, bid_price=bid_price)
 
         auction.current_price = bid_price
-        auction.bids_counter += 1
-        auction.save(update_fields=["current_price", "bids_counter"])
+        # Atomic increment: the counter can never be lost even if another
+        # writer updates it between our read and our write.
+        Auction.objects.filter(id=auction.id).update(
+            current_price=bid_price,
+            bids_counter=F("bids_counter") + 1,
+        )
 
         bid_placed_event = BidPlacedEvent(
             auction_id=auction.id,

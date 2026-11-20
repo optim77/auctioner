@@ -1,7 +1,7 @@
 from django.db.models import QuerySet
+from users.models import User
 
 from listing.models import Listing
-from users.models import User
 
 
 def get_user_listings(user: User) -> QuerySet[Listing]:

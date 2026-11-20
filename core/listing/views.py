@@ -1,10 +1,9 @@
 from rest_framework import viewsets
-from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from listing.models import Listing
 from listing.permissions import IsOwnerOfListing
 from listing.serializers import ListingSerializer
-from listing.services import ListingServices
+from listing.services import ListingService
 
 
 class ListingViewSet(viewsets.ModelViewSet):
@@ -12,14 +11,19 @@ class ListingViewSet(viewsets.ModelViewSet):
 
     queryset = Listing.objects.all()
     serializer_class = ListingSerializer
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsOwnerOfListing]
 
-    def perform_create(self, serializer) -> Listing:
-        return ListingServices.create_listing(serializer, self.request.user)
+    def perform_create(self, serializer) -> None:
+        # DRF reads ``serializer.data`` after this hook, so the created object
+        # must be attached to the serializer instead of merely returned.
+        serializer.instance = ListingService.create_listing(
+            serializer.validated_data, self.request.user
+        )
 
     def perform_update(self, serializer) -> Listing:
-        return ListingServices.update_listing(serializer, self.request.user)
+        return ListingService.update_listing(
+            serializer.instance, serializer.validated_data, self.request.user
+        )
 
     def perform_destroy(self, instance) -> None:
-        ListingServices.destroy_listing(instance)
+        ListingService.destroy_listing(instance)

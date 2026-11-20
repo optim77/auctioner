@@ -94,3 +94,13 @@ class Auction(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["status", "end_date"],
+                name="auction_status_end_idx",
+            ),
+            models.Index(
+                fields=["status", "processed", "processing"],
+                name="auction_status_processing_idx",
+            ),
+        ]

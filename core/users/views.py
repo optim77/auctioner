@@ -1,16 +1,15 @@
+from auction.models import Auction
+from auction.serializers import AuctionSerializer
 from django.contrib.auth import logout
 from django.db import transaction
 from django.db.models import QuerySet
-from rest_framework import serializers, viewsets
+from rest_framework import viewsets
 from rest_framework.generics import CreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
-from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from auction.models import Auction
-from auction.serializers import AuctionSerializer
 
 from users.mixins import UserQueryMixin
 from users.models import User
@@ -21,10 +20,14 @@ class RegisterView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'register'
 
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
     def post(self, request) -> Response:
         serializer = LoginSerializer(data=request.data)
@@ -41,19 +44,13 @@ class LoginView(APIView):
 
 class ProfileViewSet(RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get_object(self) -> User:
         return self.request.user
 
-    # TODO: need to implement saving process for other fields + emails, etc.
     def perform_update(self, serializer) -> User:
-        if 'email' in serializer.validated_data:
-            raise serializers.ValidationError({
-                'email': 'Cannot change email'
-            })
-
+        # The password must never be saved as plain text by ModelSerializer.
         password = serializer.validated_data.pop('password', None)
         user = serializer.save()
 
@@ -64,11 +61,18 @@ class ProfileViewSet(RetrieveUpdateDestroyAPIView):
 
     @transaction.atomic
     def perform_destroy(self, instance: User) -> None:
-        # Deactivate the account as well: SimpleJWT rejects tokens of inactive
-        # users and the default auth backend refuses to log them in again.
+        # Keep relational integrity, but erase personal data on soft delete.
+        instance.email = f"deleted-{instance.pk}@invalid.local"
+        instance.username = None
+        instance.phone = ''
+        instance.avatar = ''
+        instance.directional = ''
         instance.deleted = True
         instance.is_active = False
-        instance.save(update_fields=['deleted', 'is_active'])
+        instance.save(update_fields=[
+            'email', 'username', 'phone', 'avatar', 'directional',
+            'deleted', 'is_active',
+        ])
         logout(self.request)
 
 
@@ -76,7 +80,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [JWTAuthentication]
     lookup_field = 'id'
     lookup_url_kwarg = 'id'
 
@@ -95,5 +98,4 @@ class WonAuctionsViewSet(UserQueryMixin, viewsets.ReadOnlyModelViewSet):
 
     queryset = Auction.objects.all()
     serializer_class = AuctionSerializer
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]

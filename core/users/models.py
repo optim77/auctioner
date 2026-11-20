@@ -1,9 +1,9 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
+from django.contrib.postgres.indexes import GinIndex
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.db.models import Q
-
 from utils.base_model import BaseModel
 
 
@@ -71,6 +71,23 @@ class User(AbstractUser, BaseModel):
 
     class Meta:
         ordering = ('-created_at',)
+        indexes = [
+            models.Index(
+                fields=['sum_user_rating'],
+                condition=Q(sum_user_rating=True),
+                name='user_rating_dirty_idx',
+            ),
+            GinIndex(
+                fields=['username'],
+                opclasses=['gin_trgm_ops'],
+                name='user_username_trgm_idx',
+            ),
+            GinIndex(
+                fields=['email'],
+                opclasses=['gin_trgm_ops'],
+                name='user_email_trgm_idx',
+            ),
+        ]
 
     objects = UserManager()
     USERNAME_FIELD = 'email'

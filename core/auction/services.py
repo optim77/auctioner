@@ -25,7 +25,7 @@ from auction.selectors import (
 )
 
 
-class AuctionServices:
+class AuctionService:
     """Write-side operations for the auction lifecycle."""
 
     @staticmethod
@@ -43,7 +43,7 @@ class AuctionServices:
     def activate(auction_id: UUID) -> Auction:
         auction = get_auction_for_update(auction_id)
         ensure_transition(auction.status, AuctionStatus.ACTIVE)
-        AuctionServices._ensure_started(auction)
+        AuctionService._ensure_started(auction)
 
         auction.status = AuctionStatus.ACTIVE
         if auction.current_price is None:
@@ -56,7 +56,7 @@ class AuctionServices:
             start_price=str(auction.start_price),
         )
         transaction.on_commit(lambda event=started_event: EventPublisher.publish(event))
-        transaction.on_commit(lambda: AuctionServices.notify_watchers(auction))
+        transaction.on_commit(lambda: AuctionService.notify_watchers(auction))
         return auction
 
     @staticmethod
@@ -65,10 +65,10 @@ class AuctionServices:
         """Mark a finished auction with bids as sold."""
         auction = get_auction_for_update(auction_id)
         ensure_transition(auction.status, AuctionStatus.SOLD)
-        AuctionServices._ensure_ended(auction)
+        AuctionService._ensure_ended(auction)
 
         winning_bid = get_highest_bid(auction)
-        AuctionServices._mark_as_sold(auction, winning_bid)
+        AuctionService._mark_as_sold(auction, winning_bid)
         return auction
 
     @staticmethod
@@ -76,15 +76,15 @@ class AuctionServices:
     def expire(auction_id: UUID) -> Auction:
         """Finish an ended auction: SOLD when bids exist, EXPIRED otherwise."""
         auction = get_auction_for_update(auction_id)
-        AuctionServices._ensure_ended(auction)
+        AuctionService._ensure_ended(auction)
         ensure_transition(auction.status, AuctionStatus.EXPIRED)
 
         winning_bid = get_highest_bid(auction)
 
         if winning_bid is not None:
-            AuctionServices._mark_as_sold(auction, winning_bid)
+            AuctionService._mark_as_sold(auction, winning_bid)
         else:
-            AuctionServices._mark_as_expired(auction, final_price=None)
+            AuctionService._mark_as_expired(auction, final_price=None)
         return auction
 
     @staticmethod
@@ -94,7 +94,7 @@ class AuctionServices:
 
         for auction_id in get_expired_auction_ids(now):
             try:
-                AuctionServices.close_auction(auction_id)
+                AuctionService.close_auction(auction_id)
             except InvalidAuctionTransition:
                 continue
             closed += 1
@@ -119,9 +119,9 @@ class AuctionServices:
             return auction
 
         if winning_bid is None:
-            AuctionServices._mark_as_expired(auction, final_price=None)
+            AuctionService._mark_as_expired(auction, final_price=None)
         else:
-            AuctionServices._mark_as_sold(auction, winning_bid)
+            AuctionService._mark_as_sold(auction, winning_bid)
 
         return auction
 
@@ -151,8 +151,8 @@ class AuctionServices:
         if auction.status != AuctionStatus.ACTIVE:
             return
 
-        for user_id in get_watchlist_user_ids(auction.id):
-            event = KafkaAuctionStartedEvent(
+        events = [
+            KafkaAuctionStartedEvent(
                 auction_id=auction.id,
                 status=auction.status,
                 start_price=str(auction.current_price),
@@ -160,12 +160,14 @@ class AuctionServices:
                 listing_id=str(auction.listing_id),
                 receiver_id=str(user_id),
             )
-            KafkaPublisher.publish(event)
+            for user_id in get_watchlist_user_ids(auction.id)
+        ]
+        KafkaPublisher.publish_many(events)
 
     @staticmethod
     def notify_bidders(auction: Auction) -> None:
-        for user_id in get_bidder_ids(auction.id):
-            event = KafkaAuctionEndedEvent(
+        events = [
+            KafkaAuctionEndedEvent(
                 auction_id=auction.id,
                 status=auction.status,
                 final_price=(
@@ -177,7 +179,9 @@ class AuctionServices:
                 listing_id=str(auction.listing_id),
                 receiver_id=str(user_id),
             )
-            KafkaPublisher.publish(event)
+            for user_id in get_bidder_ids(auction.id)
+        ]
+        KafkaPublisher.publish_many(events)
 
     @staticmethod
     def _mark_as_sold(auction: Auction, winning_bid) -> None:
@@ -194,8 +198,8 @@ class AuctionServices:
         auction.save(
             update_fields=["status", "sold_date", "winner", "final_price"]
         )
-        AuctionServices._publish_ended(auction)
-        transaction.on_commit(lambda: AuctionServices.notify_bidders(auction))
+        AuctionService._publish_ended(auction)
+        transaction.on_commit(lambda: AuctionService.notify_bidders(auction))
 
     @staticmethod
     def _mark_as_expired(auction: Auction, *, final_price=None) -> None:
@@ -204,8 +208,8 @@ class AuctionServices:
         auction.status = AuctionStatus.EXPIRED
         auction.final_price = final_price
         auction.save(update_fields=["status", "final_price"])
-        AuctionServices._publish_ended(auction)
-        transaction.on_commit(lambda: AuctionServices.notify_bidders(auction))
+        AuctionService._publish_ended(auction)
+        transaction.on_commit(lambda: AuctionService.notify_bidders(auction))
 
     @staticmethod
     def _publish_ended(auction: Auction) -> None:
@@ -219,3 +223,7 @@ class AuctionServices:
             ),
         )
         transaction.on_commit(lambda: EventPublisher.publish(event))
+
+
+# Backwards-compatible alias for code written against the old name.
+AuctionServices = AuctionService

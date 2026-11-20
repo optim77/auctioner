@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
+from bid.models import Bid
 from django.db.models import QuerySet
+from watchlist.models import Watchlist
 
 from auction.models import Auction, AuctionStatus
 
@@ -11,7 +13,14 @@ def get_auction(auction_id: UUID) -> Auction:
 
 
 def get_auction_for_update(auction_id: UUID) -> Auction:
-    return Auction.objects.select_for_update().get(id=auction_id)
+    # Lock only the auction row. ``of=("self",)`` is required because
+    # ``winner`` is a nullable FK and PostgreSQL cannot lock the nullable
+    # side of an outer join.
+    return (
+        Auction.objects.select_for_update(of=("self",))
+        .select_related("listing", "listing__seller", "winner")
+        .get(id=auction_id)
+    )
 
 
 def get_active_auctions() -> QuerySet[Auction]:
@@ -19,23 +28,23 @@ def get_active_auctions() -> QuerySet[Auction]:
 
 
 def search_auctions(query: str) -> QuerySet[Auction]:
-    return Auction.objects.is_active().search(query).newest()[:10]
+    return Auction.objects.is_active().search(query).newest()
 
 
 def get_newest_auctions() -> QuerySet[Auction]:
-    return Auction.objects.is_active().newest()[:10]
+    return Auction.objects.is_active().newest()
 
 
 def get_newest_auctions_in_category(category: str) -> QuerySet[Auction]:
     return (
         Auction.objects.is_active()
         .filter(listing__category__name__icontains=category)
-        .newest()[:10]
+        .newest()
     )
 
 
 def get_hot_auctions() -> QuerySet[Auction]:
-    return Auction.objects.is_active().hottest()[:10]
+    return Auction.objects.is_active().hottest()
 
 
 def get_expired_auction_ids(moment: datetime | None = None) -> QuerySet:
@@ -58,8 +67,6 @@ def get_sold_auctions_to_process() -> QuerySet[Auction]:
 
 
 def get_watchlist_user_ids(auction_id: UUID) -> QuerySet:
-    from watchlist.models import Watchlist
-
     return (
         Watchlist.objects.filter(
             auction_id=auction_id,
@@ -71,8 +78,6 @@ def get_watchlist_user_ids(auction_id: UUID) -> QuerySet:
 
 
 def get_bidder_ids(auction_id: UUID) -> QuerySet:
-    from bid.models import Bid
-
     return (
         Bid.objects.filter(auction_id=auction_id)
         .values_list("bidder_id", flat=True)

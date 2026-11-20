@@ -186,4 +186,4 @@ def test_bids_counter_increment_after_bid(
 
     assert response.status_code == 201
     auction_db = Auction.objects.get(id=auction.id)
-    assert auction_db.bids_counter == 1
+    assert auction_db.bids_counter == auction.bids_counter + 1

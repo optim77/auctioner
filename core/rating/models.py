@@ -1,11 +1,10 @@
+from auction.models import Auction
 from django.core.validators import (
     MaxLengthValidator,
     MaxValueValidator,
     MinValueValidator,
 )
 from django.db import models
-
-from auction.models import Auction
 from listing.models import Listing
 from users.models import User
 from utils.base_model import BaseModel

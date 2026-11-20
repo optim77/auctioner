@@ -4,7 +4,7 @@ from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.throttling import ScopedRateThrottle
 
 from bid.serializers import BidSerializer
 from bid.services import BidService
@@ -12,8 +12,9 @@ from bid.services import BidService
 
 class BidViewSet(viewsets.GenericViewSet):
     serializer_class = BidSerializer
-    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'bid'
 
     def create(self, request, auction_id: UUID | None = None) -> Response:
         serializer = self.get_serializer(data=request.data)

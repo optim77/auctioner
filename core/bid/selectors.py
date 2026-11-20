@@ -1,4 +1,5 @@
 from auction.models import Auction
+
 from bid.models import Bid
 
 

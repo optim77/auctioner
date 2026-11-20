@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from asgiref.sync import sync_to_async
 from auction.models import Auction
-from auction.services import AuctionServices
+from auction.services import AuctionService
 from auction.tasks import check_auctions_ending_soon
 from bid.services import BidService
 from channels.testing import WebsocketCommunicator
@@ -96,7 +96,7 @@ async def test_client_receives_auction_started_event(draft_auction, seller):
         "current_price": "100.00",
         "end_date": draft_auction.end_date.isoformat(),
     }
-    auction = await sync_to_async(AuctionServices.activate)(auction_id=draft_auction.id)
+    auction = await sync_to_async(AuctionService.activate)(auction_id=draft_auction.id)
     response = await communicator.receive_json_from()
     assert response == {
         "type": "auction_started",
@@ -127,7 +127,7 @@ async def test_client_receives_auction_ended_event(auction, seller):
     }
     auction.end_date = timezone.now() - timedelta(minutes=1)
     await sync_to_async(auction.save)(update_fields=["end_date"])
-    auction = await sync_to_async(AuctionServices.close_auction)(auction_id=auction.id)
+    auction = await sync_to_async(AuctionService.close_auction)(auction_id=auction.id)
     response = await communicator.receive_json_from()
     assert response == {
         "type": "auction_ended",

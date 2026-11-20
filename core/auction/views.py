@@ -1,5 +1,6 @@
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
@@ -13,7 +14,7 @@ from auction.selectors import (
     search_auctions,
 )
 from auction.serializers import AuctionSerializer
-from auction.services import AuctionServices
+from auction.services import AuctionService
 
 
 class AuctionViewSet(viewsets.ModelViewSet):
@@ -42,19 +43,20 @@ class AuctionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def activate(self, request, id=None) -> Response:
-        return self._run_transition(AuctionServices.activate)
+        return self._run_transition(AuctionService.activate)
 
     @action(detail=True, methods=["post"])
     def finish(self, request, id=None) -> Response:
-        return self._run_transition(AuctionServices.finish)
+        return self._run_transition(AuctionService.finish)
 
     @action(detail=True, methods=["post"])
     def expire(self, request, id=None) -> Response:
-        return self._run_transition(AuctionServices.expire)
+        return self._run_transition(AuctionService.expire)
 
 
 class NewestAuctionViewSet(generics.ListAPIView):
     serializer_class = AuctionSerializer
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         return get_newest_auctions()
@@ -62,6 +64,7 @@ class NewestAuctionViewSet(generics.ListAPIView):
 
 class NewestInCategoryViewSet(generics.ListAPIView):
     serializer_class = AuctionSerializer
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         category = self.kwargs.get("category") or self.request.query_params.get(
@@ -75,6 +78,7 @@ class NewestInCategoryViewSet(generics.ListAPIView):
 
 class HotAuctionViewSet(generics.ListAPIView):
     serializer_class = AuctionSerializer
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         return get_hot_auctions()

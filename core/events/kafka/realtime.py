@@ -11,19 +11,22 @@ from events.kafka.events import (
 
 logger = logging.getLogger(__name__)
 
-_SEND_TIMEOUT_SECONDS = 10
+def _on_delivery_error(error, topic: str) -> None:
+    logger.error("Kafka delivery to %s failed: %s", topic, error)
 
 
 def _send(topic: str, value: dict, headers=None) -> None:
-    """Publish a message and wait until the broker acknowledges it.
+    """Queue a message without blocking the caller.
 
-    Failures are logged instead of raised: publishing a notification
-    must never break the business transaction that triggered it.
+    Waiting for a broker acknowledgement (``future.get``) inside a request or
+    a transaction callback added up to 10s of latency per recipient. The
+    producer batches and retries internally; delivery errors are logged via a
+    callback and never break the business transaction.
     """
     producer = get_kafka_producer()
     try:
         future = producer.send(topic, value=value, headers=headers)
-        future.get(timeout=_SEND_TIMEOUT_SECONDS)
+        future.add_errback(_on_delivery_error, topic)
     except Exception:
         logger.exception("Kafka publish to %s failed", topic)
 

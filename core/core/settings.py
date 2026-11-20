@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -24,6 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured(
+        "SECRET_KEY is not set. Add it to the environment or .env file."
+    )
 
 # SECURITY WARNING: don't turn debug on in production!
 DEBUG = os.getenv("DEBUG", "").strip().lower() in {"1", "true", "yes", "on"}
@@ -35,6 +40,13 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+# Comma-separated list of origins allowed to call the API from a browser.
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 
 # Application definition
 
@@ -43,6 +55,7 @@ INSTALLED_APPS = [
     'channels',
     'rest_framework',
     'rest_framework_simplejwt',
+    'django.contrib.postgres',
     'auction.apps.AuctionConfig',
     'bid.apps.BidConfig',
     'categories.apps.CategoriesConfig',
@@ -60,6 +73,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'core.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -137,7 +151,22 @@ USE_TZ = True
 REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
-    "EXCEPTION_HANDLER": "core.exception_handler.custom_exception_handler"
+    "EXCEPTION_HANDLER": "core.exception_handler.custom_exception_handler",
+    # Secure defaults: every endpoint requires authentication unless a view
+    # explicitly opts out (public listings, login, registration, ...).
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    # Scopes are enabled per view via ScopedRateThrottle.
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "20/min",
+        "register": "10/hour",
+        "bid": "100/min",
+    },
 }
 
 
@@ -183,7 +212,8 @@ REDIS_PORT=os.getenv("REDIS_PORT")
 REDIS_DB=os.getenv("REDIS_DB")
 
 
-CELERY_TIMEZONE = "Europe/Warsaw"
+# Keep Celery's clock aligned with Django's USE_TZ/TIME_ZONE settings.
+CELERY_TIMEZONE = "UTC"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_TASK_TIME_LIMIT = 30 * 60

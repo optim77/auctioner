@@ -1,7 +1,7 @@
+from categories.models import Category
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 from django.db.models import Q, QuerySet
-
-from categories.models import Category
 from users.models import User
 from utils.base_model import BaseModel
 
@@ -29,3 +29,15 @@ class Listing(BaseModel):
 
     class Meta:
         ordering = ['-creation_date']
+        indexes = [
+            GinIndex(
+                fields=['name'],
+                opclasses=['gin_trgm_ops'],
+                name='listing_name_trgm_idx',
+            ),
+            GinIndex(
+                fields=['description'],
+                opclasses=['gin_trgm_ops'],
+                name='listing_description_trgm_idx',
+            ),
+        ]
